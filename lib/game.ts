@@ -1,4 +1,5 @@
 import { PHASES } from './protocol'
+import { kompasContext } from './kompas'
 
 export const todayISO = () => {
   const d = new Date()
@@ -40,6 +41,11 @@ export function levelFor(xp: number) {
 }
 
 export const XP = { CHECKIN: 50, ANKLE_CHECK: 100, TEST: 15, MED_PER_MIN: 2, STANCE_PER_MIN: 2, PLAN_DAY_BONUS: 40 }
+
+// Streak van een habit-doel: aaneengesloten dagen met een "gelukt"-log t/m vandaag of gisteren.
+export function goalStreak(goalId: string, logs: any[]) {
+  return streakFrom(logs.filter((l: any) => l.goal_id === goalId && l.done).map((l: any) => l.date))
+}
 
 export function streakFrom(dates: string[]) {
   const set = new Set(dates)
@@ -141,6 +147,37 @@ export function coachContext(s: any) {
     L.push(`Fasecriteria fase ${ph.n} (${ph.title}): ${met}/${ph.criteria.length} afgevinkt.`)
   }
   if (s.tests.length) L.push(`Testresultaten in database: ${s.tests.length} metingen.`)
+
+  // Schema van vandaag (structured data, geen AI)
+  const today = todayISO()
+  const planDay = (s.plan || []).find((d: any) => d.date === today)
+  if (planDay) {
+    const total = (planDay.blocks || []).reduce((x: number, b: any) => x + b.items.length, 0)
+    const done = (planDay.done_keys || []).length
+    L.push(
+      `Training vandaag (week ${planDay.week_no}, dag ${planDay.day_no}): ${planDay.title} — ${done}/${total} afgevinkt.${planDay.coach_note ? ' Weekfocus: ' + planDay.coach_note : ''}`
+    )
+  }
+
+  // Actieve doelen + streaks
+  const goals = (s.goals || []).filter((g: any) => g.active)
+  if (goals.length) {
+    L.push('Actieve doelen:')
+    goals.forEach((g: any) => {
+      const st = goalStreak(g.id, s.goalLogs || [])
+      L.push(`- ${g.title} (${g.type})${g.type.startsWith('habit') ? ` — streak ${st} dagen` : ''}${g.detail ? ' · ' + g.detail : ''}`)
+    })
+  }
+
+  // Kompas / koersdata
+  if ((s.targets || []).length) L.push(kompasContext(s.targets, s.tests, p))
+
+  // Laatste briefings voor continuïteit
+  const briefs = (s.briefings || []).slice(0, 2)
+  if (briefs.length) {
+    L.push('Recente ochtendbriefings (voor continuïteit — verwijs er gerust naar):')
+    briefs.forEach((b: any) => L.push(`[${b.date}] ${String(b.content).slice(0, 300)}`))
+  }
   return L.join('\n')
 }
 

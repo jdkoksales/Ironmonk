@@ -26,8 +26,10 @@ export const PLAN_START = '2026-07-13' // maandag — week 1 dag 1
 
 export const phaseForWeek = (w: number) => (w <= 3 ? 1 : w <= 6 ? 2 : w <= 9 ? 3 : 4)
 const weekInPhase = (w: number) => ((w - 1) % 3) + 1
-const isDeload = (w: number) => w === 6
-const isTaper = (w: number) => w === 12
+export const isDeload = (w: number) => w === 6
+export const isTaper = (w: number) => w === 12
+// Ijkpunten: elke ~4 weken de testbatterij herhalen (koppelt aan het Kompas).
+export const RETEST_WEEKS = [4, 8, 12]
 
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`

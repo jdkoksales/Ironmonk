@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/config'
+import { kompasContext } from '@/lib/kompas'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -75,13 +76,15 @@ export async function POST(req: Request) {
   const force = body?.force === true
   const today = todayISO()
 
-  const [{ data: profile }, { data: checkins }, { data: ankle }, { data: criteria }, { data: plan }] =
+  const [{ data: profile }, { data: checkins }, { data: ankle }, { data: criteria }, { data: plan }, { data: targets }, { data: tests }] =
     await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
       supabase.from('daily_checkins').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(14),
       supabase.from('ankle_checks').select('*').eq('user_id', user.id).order('week_date', { ascending: false }).limit(1),
       supabase.from('criteria_state').select('*').eq('user_id', user.id),
       supabase.from('plan_days').select('*').eq('user_id', user.id).order('date', { ascending: true }),
+      supabase.from('targets').select('*').eq('user_id', user.id).eq('active', true),
+      supabase.from('test_results').select('*').eq('user_id', user.id).order('tested_at', { ascending: true }).limit(1000),
     ])
 
   // Cooldown — hooguit ~1×/week (kostenbeheersing).
@@ -125,6 +128,7 @@ Meditatie deze week: ${week.reduce((x: number, c: any) => x + (c.meditation_min 
 ${a ? `Laatste enkelcheck (${a.week_date}): figure-8/omtrek ${a.figure8_l ?? '-'}/${a.figure8_r ?? '-'} | knee-to-wall ${a.ktw_l ?? '-'}/${a.ktw_r ?? '-'} | balans ${a.balance_l ?? '-'}/${a.balance_r ?? '-'} | heel raises ${a.heel_raises_l ?? '-'}/${a.heel_raises_r ?? '-'} | weekpijn ${a.pain_week ?? '-'} | instabiliteit ${a.instability ?? '-'}` : 'Nog geen enkelcheck ingevuld.'}
 Schema-adherentie afgelopen 7 dagen (afgevinkt/totaal):
 ${adherence || 'geen'}
+${targets?.length ? kompasContext(targets as any, tests || [], profile) + '\nStuur bij op het kompas: benoem waar hij vóór ligt of achterloopt en verschuif accenten in de aanpasbare blokken.' : ''}
 Aanpasbare oefeningen komende week (week ${nextWeekNo ?? '-'}):
 ${nextWeekEx || 'geen'}`
 

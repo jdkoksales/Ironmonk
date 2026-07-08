@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { Send, Copy, Sparkles, CalendarCheck } from 'lucide-react'
+import { Send, Copy, Sparkles, CalendarCheck, Sunrise } from 'lucide-react'
 import { useApp } from '@/lib/store'
-import { coachContext, weekReport } from '@/lib/game'
+import { coachContext, weekReport, todayISO } from '@/lib/game'
 
 const QUICK = [
   'Wat is mijn focus voor vandaag?',
@@ -17,7 +17,36 @@ export default function Coach() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [briefing, setBriefing] = useState<string | null>(null)
+  const [briefBusy, setBriefBusy] = useState(false)
   const endRef = useRef<any>(null)
+
+  // Ochtendbriefing: 1 AI-call per dag, gecachet in daily_briefings.
+  // Bij openen na 04:00 automatisch genereren; bestaat er al één, dan tonen zonder AI-call.
+  useEffect(() => {
+    ;(async () => {
+      if (!app?.user) return
+      const today = todayISO()
+      const cached = (app.briefings || []).find((b: any) => b.date === today)
+      if (cached) {
+        setBriefing(cached.content)
+        return
+      }
+      if (new Date().getHours() < 4) return
+      setBriefBusy(true)
+      try {
+        const r = await fetch('/api/coach/briefing', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ date: today }),
+        })
+        const data = await r.json()
+        if (r.ok && data.text) setBriefing(data.text)
+      } catch {}
+      setBriefBusy(false)
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [app?.user])
 
   useEffect(() => {
     ;(async () => {
@@ -52,6 +81,7 @@ export default function Coach() {
         body: JSON.stringify({
           messages: next.map((m: any) => ({ role: m.role, content: m.content })),
           context: coachContext(app),
+          date: todayISO(),
         }),
       })
       const data = await r.json()
@@ -59,6 +89,8 @@ export default function Coach() {
       const am = { role: 'assistant', content }
       setMsgs((m) => [...m, am])
       if (r.ok) await app.supabase.from('coach_messages').insert({ user_id: app.user.id, ...am })
+      // De coach kan via tools echt iets hebben aangepast — herlaad dan schema/doelen/targets.
+      if (r.ok && data.actions?.length) await app.refresh()
     } catch {
       setMsgs((m) => [...m, { role: 'assistant', content: '⚠️ Netwerkfout — probeer het opnieuw.' }])
     }
@@ -123,6 +155,20 @@ export default function Coach() {
         <CalendarCheck size={16} />
         Weekevaluatie — beoordeel & stel mijn schema bij
       </button>
+
+      {(briefing || briefBusy) && (
+        <div className="card mb-3 border-amber/25">
+          <div className="mb-1.5 flex items-center gap-2">
+            <Sunrise size={14} className="text-amber" />
+            <span className="lbl">Ochtendbriefing</span>
+          </div>
+          {briefing ? (
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">{briefing}</p>
+          ) : (
+            <p className="animate-pulse text-sm text-muted">Shifu overdenkt je ochtend…</p>
+          )}
+        </div>
+      )}
 
       <div className="flex-1 space-y-3 overflow-y-auto pb-3">
         {msgs.length === 0 && (

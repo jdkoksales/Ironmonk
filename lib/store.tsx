@@ -20,6 +20,10 @@ export function AppProvider({ children }: any) {
     tests: [],
     criteria: [],
     plan: [],
+    goals: [],
+    goalLogs: [],
+    targets: [],
+    briefings: [],
   })
 
   const load = async () => {
@@ -37,6 +41,12 @@ export function AppProvider({ children }: any) {
       supabase.from('test_results').select('*').eq('user_id', user.id).order('tested_at', { ascending: true }).limit(1000),
       supabase.from('criteria_state').select('*').eq('user_id', user.id),
       supabase.from('plan_days').select('*').eq('user_id', user.id).order('date', { ascending: true }),
+    ])
+    const [g, gl, tg, br] = await Promise.all([
+      supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+      supabase.from('goal_logs').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(400),
+      supabase.from('targets').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+      supabase.from('daily_briefings').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(5),
     ])
     let profile = p.data
     if (!profile) {
@@ -60,6 +70,10 @@ export function AppProvider({ children }: any) {
       tests: t.data || [],
       criteria: cr.data || [],
       plan,
+      goals: g.data || [],
+      goalLogs: gl.data || [],
+      targets: tg.data || [],
+      briefings: br.data || [],
     })
   }
 
@@ -79,6 +93,21 @@ export function AppProvider({ children }: any) {
     if (after.level > before) window.dispatchEvent(new CustomEvent('ironlevelup', { detail: after }))
     await supabase.from('xp_events').insert({ user_id: s.user.id, source, amount, meta })
     await supabase.from('profiles').update({ xp: newXp }).eq('id', s.user.id)
+  }
+
+  // Stille teller: habit-doel voor vandaag aan/uit zetten (geen XP, geen moraal).
+  const toggleGoalLog = async (goalId: string, date: string, done: boolean) => {
+    if (!s.user) return
+    setS((x: any) => {
+      const rest = x.goalLogs.filter((l: any) => !(l.goal_id === goalId && l.date === date))
+      return { ...x, goalLogs: done ? [{ user_id: s.user.id, goal_id: goalId, date, done: true }, ...rest] : rest }
+    })
+    if (done)
+      await supabase.from('goal_logs').upsert(
+        { user_id: s.user.id, goal_id: goalId, date, done: true },
+        { onConflict: 'goal_id,date' }
+      )
+    else await supabase.from('goal_logs').delete().eq('goal_id', goalId).eq('date', date)
   }
 
   const savePlanDay = async (dayId: string, done_keys: string[], completed: boolean) => {
@@ -102,5 +131,9 @@ export function AppProvider({ children }: any) {
       </div>
     )
 
-  return <Ctx.Provider value={{ ...s, supabase, refresh: load, awardXp, savePlanDay }}>{children}</Ctx.Provider>
+  return (
+    <Ctx.Provider value={{ ...s, supabase, refresh: load, awardXp, savePlanDay, toggleGoalLog }}>
+      {children}
+    </Ctx.Provider>
+  )
 }

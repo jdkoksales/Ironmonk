@@ -3,10 +3,11 @@ import Link from 'next/link'
 import { useState } from 'react'
 import {
   CheckCircle2, Circle, Wind, Timer, ChevronRight, Dumbbell, Footprints,
-  HeartPulse, Flame, Brain, BedDouble, Activity,
+  HeartPulse, Flame, Brain, BedDouble, Activity, Compass, Target as TargetIcon,
 } from 'lucide-react'
 import { useApp } from '@/lib/store'
-import { readiness, todayISO, daysUntil, streakFrom, XP } from '@/lib/game'
+import { readiness, todayISO, daysUntil, streakFrom, XP, goalStreak } from '@/lib/game'
+import { kompasSummary, COURSE_META } from '@/lib/kompas'
 import { PHASES, proverbOfDay } from '@/lib/protocol'
 import { Ring, Dots } from '@/components/viz'
 import { BreathTimer, StanceTimer } from '@/components/timers'
@@ -148,6 +149,59 @@ function PlanToday() {
   )
 }
 
+function KompasCard() {
+  const app = useApp()
+  if (!(app?.targets || []).length) return null
+  const s = kompasSummary(app.targets, app.tests || [], app.profile)
+  const overall = s.stalled > 0 ? 'stalled' : s.behind > s.ahead ? 'behind' : s.ahead > 0 ? 'ahead' : 'on'
+  const c = COURSE_META[overall as keyof typeof COURSE_META]
+  return (
+    <Link href="/kompas" className="card flex items-center gap-3">
+      <span
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-xl"
+        style={{ background: `${c.color}1A`, color: c.color }}
+      >
+        <Compass size={19} />
+      </span>
+      <div className="flex-1">
+        <div className="text-sm font-semibold text-ink">Kompas</div>
+        <div className="text-[11px] text-muted">
+          {s.ahead} vóór · {s.on} op schema · {s.behind} achter{s.stalled ? ` · ${s.stalled} rood` : ''}
+          {s.retests > 0 ? ` · ${s.retests}× hertest` : ''}
+        </div>
+      </div>
+      <ChevronRight size={18} className="text-muted" />
+    </Link>
+  )
+}
+
+function GoalsCard() {
+  const app = useApp()
+  const goals = (app?.goals || []).filter((g: any) => g.active)
+  if (!goals.length) return null
+  return (
+    <section className="card">
+      <div className="mb-2 flex items-center gap-2">
+        <TargetIcon size={14} className="text-violet" />
+        <span className="lbl">Doelen</span>
+      </div>
+      <div className="space-y-1.5">
+        {goals.map((g: any) => {
+          const st = goalStreak(g.id, app.goalLogs || [])
+          return (
+            <div key={g.id} className="flex items-center justify-between rounded-lg bg-panel2 px-3 py-2">
+              <span className="text-sm text-ink">{g.title}</span>
+              {g.type.startsWith('habit') && (
+                <span className="num font-display text-sm font-bold text-neon">{st} dgn</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 export default function Vandaag() {
   const app = useApp()
   const [modal, setModal] = useState<null | 'breath' | 'stance'>(null)
@@ -235,6 +289,9 @@ export default function Vandaag() {
       </section>
 
       <PlanToday />
+
+      <KompasCard />
+      <GoalsCard />
 
       <section className="grid grid-cols-2 gap-3">
         <button onClick={() => setModal('breath')} className="card flex items-center gap-3 text-left">
