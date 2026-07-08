@@ -90,6 +90,12 @@ function PlanToday() {
         </p>
       )}
 
+      {day.coach_note && (
+        <p className="mb-3 rounded-lg border border-neon/30 bg-neon/10 p-2.5 text-xs leading-relaxed text-ink">
+          <span className="font-semibold text-neon">Coach-focus:</span> {day.coach_note}
+        </p>
+      )}
+
       {day.is_rest && (
         <p className="mb-3 text-xs italic text-muted">Rustdag — herstel is training. Vink af wat je doet.</p>
       )}

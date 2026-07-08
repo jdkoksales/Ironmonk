@@ -43,12 +43,13 @@ export function AppProvider({ children }: any) {
       const ins = await supabase.from('profiles').insert({ id: user.id }).select().single()
       profile = ins.data
     }
-    // Self-seed: bouw het 12-weken-schema eenmalig als het er nog niet is (geen AI).
+    // Self-seed (geen AI): vul ontbrekende dagen van het 12-weken-schema aan.
     let plan = pl.data || []
-    if (!plan.length) {
-      const rows = planRows(user.id)
-      const { data: seeded } = await supabase.from('plan_days').insert(rows).select().order('date', { ascending: true })
-      plan = seeded || []
+    const have = new Set(plan.map((d: any) => d.date))
+    const missing = planRows(user.id).filter((r) => !have.has(r.date))
+    if (missing.length) {
+      const { data: seeded } = await supabase.from('plan_days').insert(missing).select()
+      plan = [...plan, ...(seeded || [])].sort((a: any, b: any) => (a.date < b.date ? -1 : 1))
     }
     setS({
       loading: false,

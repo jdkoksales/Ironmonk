@@ -1,13 +1,13 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { Send, Copy, Sparkles } from 'lucide-react'
+import { Send, Copy, Sparkles, CalendarCheck } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { coachContext, weekReport } from '@/lib/game'
 
 const QUICK = [
-  'Maak mijn weekevaluatie',
   'Wat is mijn focus voor vandaag?',
   'Analyseer mijn enkeldata',
+  'Leg mijn schema van deze week uit',
   'Motiveer me — ik zit er even doorheen',
 ]
 
@@ -71,6 +71,37 @@ export default function Coach() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const runWeekly = async (force = false) => {
+    if (busy || !app?.user) return
+    setBusy(true)
+    try {
+      const r = await fetch('/api/coach/weekly', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ force }),
+      })
+      const data = await r.json()
+      if (data.cooldown) {
+        if (typeof window !== 'undefined' && window.confirm(`${data.error}\n\nToch opnieuw draaien?`)) {
+          setBusy(false)
+          return runWeekly(true)
+        }
+      } else if (r.ok) {
+        const extra =
+          data.applied > 0
+            ? `\n\n✅ ${data.applied} aanpassing(en) in je komende weken doorgevoerd.`
+            : '\n\n(Geen aanpassingen nodig — koers vasthouden.)'
+        setMsgs((m) => [...m, { role: 'assistant', content: `📋 Weekevaluatie\n\n${data.text}${extra}` }])
+        await app.refresh()
+      } else {
+        setMsgs((m) => [...m, { role: 'assistant', content: `⚠️ ${data.error || 'Er ging iets mis.'}` }])
+      }
+    } catch {
+      setMsgs((m) => [...m, { role: 'assistant', content: '⚠️ Netwerkfout — probeer het opnieuw.' }])
+    }
+    setBusy(false)
+  }
+
   return (
     <div className="flex min-h-[calc(100dvh-200px)] flex-col pt-4">
       <div className="mb-3 flex items-center justify-between">
@@ -83,6 +114,15 @@ export default function Coach() {
           {copied ? 'Gekopieerd ✓' : 'Weekrapport'}
         </button>
       </div>
+
+      <button
+        onClick={() => runWeekly(false)}
+        disabled={busy}
+        className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-neon py-3 font-display text-sm font-bold tracking-wide text-bg shadow-[0_0_24px_rgba(0,229,160,.35)] disabled:opacity-40"
+      >
+        <CalendarCheck size={16} />
+        Weekevaluatie — beoordeel & stel mijn schema bij
+      </button>
 
       <div className="flex-1 space-y-3 overflow-y-auto pb-3">
         {msgs.length === 0 && (
