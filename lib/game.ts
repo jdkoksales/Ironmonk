@@ -39,7 +39,7 @@ export function levelFor(xp: number) {
   return { level: i + 1, rank: cur.rank, hanzi: cur.hanzi, xp, next, pct }
 }
 
-export const XP = { CHECKIN: 50, ANKLE_CHECK: 100, TEST: 15, MED_PER_MIN: 2, STANCE_PER_MIN: 2 }
+export const XP = { CHECKIN: 50, ANKLE_CHECK: 100, TEST: 15, MED_PER_MIN: 2, STANCE_PER_MIN: 2, PLAN_DAY_BONUS: 40 }
 
 export function streakFrom(dates: string[]) {
   const set = new Set(dates)

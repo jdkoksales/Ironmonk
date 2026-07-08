@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { sb } from './supabase'
 import { levelFor } from './game'
+import { planRows } from './plan'
 
 const Ctx = createContext<any>(null)
 export const useApp = () => useContext(Ctx)
@@ -18,6 +19,7 @@ export function AppProvider({ children }: any) {
     ankle: [],
     tests: [],
     criteria: [],
+    plan: [],
   })
 
   const load = async () => {
@@ -28,17 +30,25 @@ export function AppProvider({ children }: any) {
       router.replace('/login')
       return
     }
-    const [p, c, a, t, cr] = await Promise.all([
+    const [p, c, a, t, cr, pl] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
       supabase.from('daily_checkins').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(120),
       supabase.from('ankle_checks').select('*').eq('user_id', user.id).order('week_date', { ascending: false }).limit(30),
       supabase.from('test_results').select('*').eq('user_id', user.id).order('tested_at', { ascending: true }).limit(1000),
       supabase.from('criteria_state').select('*').eq('user_id', user.id),
+      supabase.from('plan_days').select('*').eq('user_id', user.id).order('date', { ascending: true }),
     ])
     let profile = p.data
     if (!profile) {
       const ins = await supabase.from('profiles').insert({ id: user.id }).select().single()
       profile = ins.data
+    }
+    // Self-seed: bouw het 12-weken-schema eenmalig als het er nog niet is (geen AI).
+    let plan = pl.data || []
+    if (!plan.length) {
+      const rows = planRows(user.id)
+      const { data: seeded } = await supabase.from('plan_days').insert(rows).select().order('date', { ascending: true })
+      plan = seeded || []
     }
     setS({
       loading: false,
@@ -48,6 +58,7 @@ export function AppProvider({ children }: any) {
       ankle: a.data || [],
       tests: t.data || [],
       criteria: cr.data || [],
+      plan,
     })
   }
 
@@ -69,6 +80,15 @@ export function AppProvider({ children }: any) {
     await supabase.from('profiles').update({ xp: newXp }).eq('id', s.user.id)
   }
 
+  const savePlanDay = async (dayId: string, done_keys: string[], completed: boolean) => {
+    const completed_at = completed ? new Date().toISOString() : null
+    setS((x: any) => ({
+      ...x,
+      plan: x.plan.map((d: any) => (d.id === dayId ? { ...d, done_keys, completed_at } : d)),
+    }))
+    await supabase.from('plan_days').update({ done_keys, completed_at }).eq('id', dayId)
+  }
+
   if (s.loading)
     return (
       <div className="grid min-h-dvh place-items-center bg-bg">
@@ -81,5 +101,5 @@ export function AppProvider({ children }: any) {
       </div>
     )
 
-  return <Ctx.Provider value={{ ...s, supabase, refresh: load, awardXp }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ ...s, supabase, refresh: load, awardXp, savePlanDay }}>{children}</Ctx.Provider>
 }
