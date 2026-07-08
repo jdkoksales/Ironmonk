@@ -1,10 +1,45 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { CheckCircle2, Circle } from 'lucide-react'
 import { useApp } from '@/lib/store'
-import { todayISO, XP, streakFrom, streakMult } from '@/lib/game'
+import { todayISO, XP, streakFrom, streakMult, goalStreak } from '@/lib/game'
 import { TRAINING_TYPES } from '@/lib/protocol'
 import { Slider, Stepper, Chips } from '@/components/viz'
+
+// Stille teller voor habit-doelen: één tik = "vandaag gelukt". Geen moraal, geen pop-ups.
+function HabitBlock() {
+  const app = useApp()
+  const today = todayISO()
+  const habits = (app?.goals || []).filter((g: any) => g.active && g.type.startsWith('habit'))
+  if (!habits.length) return null
+  return (
+    <section className="card">
+      <p className="lbl mb-2">Vandaag gelukt</p>
+      <div className="space-y-1.5">
+        {habits.map((g: any) => {
+          const done = (app.goalLogs || []).some((l: any) => l.goal_id === g.id && l.date === today && l.done)
+          const st = goalStreak(g.id, app.goalLogs || [])
+          return (
+            <button
+              key={g.id}
+              onClick={() => app.toggleGoalLog(g.id, today, !done)}
+              className="flex w-full items-center gap-2.5 rounded-xl bg-panel2 px-3 py-2.5 text-left"
+            >
+              {done ? (
+                <CheckCircle2 size={18} className="shrink-0 text-neon" />
+              ) : (
+                <Circle size={18} className="shrink-0 text-line" />
+              )}
+              <span className="flex-1 text-sm text-ink">{g.title}</span>
+              <span className="num text-[11px] text-muted">{st} dgn</span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
 
 export default function CheckIn() {
   const app = useApp()
@@ -118,6 +153,8 @@ export default function CheckIn() {
           className="mt-3 w-full rounded-xl border border-line bg-panel2 p-3 text-sm text-ink outline-none placeholder:text-muted focus:border-neon"
         />
       </section>
+
+      <HabitBlock />
 
       <button onClick={save} disabled={busy} className="btn-primary w-full py-3.5 text-base">
         {busy ? 'Opslaan…' : ex ? 'Check-in bijwerken' : `Check-in opslaan · +${xpPreview} XP`}

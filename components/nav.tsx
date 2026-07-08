@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Home, Activity, ClipboardList, TrendingUp, MessageCircle, User, Flame } from 'lucide-react'
+import { Home, Activity, ClipboardList, TrendingUp, MessageCircle, User, Flame, CalendarRange } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { levelFor, streakFrom } from '@/lib/game'
 import { XPBar } from './viz'
@@ -104,6 +104,7 @@ export function Header() {
 
 const TABS = [
   { href: '/vandaag', label: 'Vandaag', icon: Home },
+  { href: '/schema', label: 'Schema', icon: CalendarRange },
   { href: '/enkel', label: 'Enkel', icon: Activity },
   { href: '/testen', label: 'Testen', icon: ClipboardList },
   { href: '/trends', label: 'Trends', icon: TrendingUp },
