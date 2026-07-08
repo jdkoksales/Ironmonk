@@ -1,0 +1,10 @@
+.cache
+node_modules
+.next
+supabase
+README.md
+.npm-global
+.config
+.local
+.bashrc
+.profile
