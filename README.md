@@ -2,7 +2,7 @@
 
 Whoop-stijl trainingsdashboard voor Julians Shaolin-voorbereiding: dagelijkse check-ins met readiness-score, het 4-fasen enkelprotocol met go/no-go-criteria, de volledige testbatterij, XP/levels/streaks met Shaolin-rangen, een meditatie- en Ma Bu-timer, media-kluis voor testvideo's en een AI-coach (Claude) die je live data kent.
 
-> Repository gekoppeld aan Vercel voor automatische deploys vanaf `main`.
+> Repository gekoppeld aan Vercel — elke push naar `main` deployt automatisch naar productie (`iron-monk-mauve.vercel.app`).
 
 ## Stack
 
