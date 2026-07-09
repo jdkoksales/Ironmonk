@@ -148,14 +148,33 @@ export function coachContext(s: any) {
   }
   if (s.tests.length) L.push(`Testresultaten in database: ${s.tests.length} metingen.`)
 
-  // Schema van vandaag (structured data, geen AI)
+  // Trainingsschema — overzicht + komende dagen (structured data, geen AI).
   const today = todayISO()
-  const planDay = (s.plan || []).find((d: any) => d.date === today)
-  if (planDay) {
-    const total = (planDay.blocks || []).reduce((x: number, b: any) => x + b.items.length, 0)
-    const done = (planDay.done_keys || []).length
+  const plan = (s.plan || []) as any[]
+  if (plan.length) {
+    const DOW = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za']
+    const dow = (iso: string) => DOW[new Date(iso + 'T12:00:00').getDay()]
+    L.push(`\nTRAININGSSCHEMA: ${plan.length} dagen, ${plan[0].date} t/m ${plan[plan.length - 1].date} (12 weken).`)
+    const planDay = plan.find((d: any) => d.date === today)
+    if (planDay) {
+      const total = (planDay.blocks || []).reduce((x: number, b: any) => x + b.items.length, 0)
+      const done = (planDay.done_keys || []).length
+      L.push(
+        `Vandaag (week ${planDay.week_no}, dag ${planDay.day_no}): ${planDay.title} — ${done}/${total} afgevinkt.${planDay.coach_note ? ' Weekfocus: ' + planDay.coach_note : ''}`
+      )
+    } else {
+      const next = plan.find((d: any) => d.date > today)
+      if (next) L.push(`Vandaag (${today}) staat geen sessie gepland; het programma start ${next.date}.`)
+    }
+    const upcoming = plan.filter((d: any) => d.date >= today).slice(0, 7)
+    if (upcoming.length) {
+      L.push('Komende dagen (titels; vraag get_schedule voor exacte oefeningen/sets/reps):')
+      upcoming.forEach((d: any) =>
+        L.push(`- ${d.date} (${dow(d.date)}) wk ${d.week_no}/fase ${d.phase_target}: ${d.title}${d.is_rest ? ' [rust]' : ''}`)
+      )
+    }
     L.push(
-      `Training vandaag (week ${planDay.week_no}, dag ${planDay.day_no}): ${planDay.title} — ${done}/${total} afgevinkt.${planDay.coach_note ? ' Weekfocus: ' + planDay.coach_note : ''}`
+      'Je kunt het schema volledig inzien met de tool get_schedule (elke week/datum) en aanpassen met adjust_exercise.'
     )
   }
 

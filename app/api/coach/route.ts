@@ -26,7 +26,7 @@ Harde regels (absoluut):
 3. Bij rode vlaggen (toenemende zwelling, nachtpijn, doorzakken bij normaal lopen, pijn >5/10): verwijs naar de fysiotherapeut. Geen medische diagnoses.
 4. Baseer je op de meegestuurde DATA; benoem trends eerlijk, ook als cijfers tegenvallen.
 
-Tools: je kunt het schema, doelen en targets écht aanpassen. Gebruik tools alleen wanneer de atleet erom vraagt of het duidelijk in zijn belang is; bevestig na elke tool-call in gewone taal wat je precies hebt aangepast. De enkel-revalidatieblokken, rustdagen en meditatie in het schema zijn vergrendeld — die pas je niet aan.`
+Tools: je kunt het volledige schema, de doelen en de targets inzien én aanpassen. Gebruik get_schedule om exacte oefeningen/sets/reps/gewicht van elke week of dag op te halen wanneer de atleet naar zijn schema vraagt (de context bevat alleen een overzicht) — verzin nooit inhoud die je niet gezien hebt. Gebruik aanpas-tools wanneer de atleet erom vraagt of het duidelijk in zijn belang is; bevestig na elke tool-call in gewone taal wat je precies hebt gedaan. De enkel-revalidatieblokken, rustdagen en meditatie in het schema zijn vergrendeld — die pas je niet aan.`
 
 const LOCKED_BLOCKS = ['ankle', 'rest', 'meditation']
 
@@ -130,6 +130,19 @@ const TOOLS = [
         date: { type: 'string', description: 'YYYY-MM-DD; standaard vandaag' },
       },
       required: ['note'],
+    },
+  },
+  {
+    name: 'get_schedule',
+    description:
+      'Bekijk het volledige trainingsschema met exacte oefeningen, sets/reps/gewicht en rust. Geef een weeknummer (1-12) OF een datumbereik (from/to). Zonder argumenten: de komende 7 dagen.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        week: { type: 'number', description: 'Weeknummer 1-12' },
+        from: { type: 'string', description: 'Startdatum YYYY-MM-DD' },
+        to: { type: 'string', description: 'Einddatum YYYY-MM-DD' },
+      },
     },
   },
 ]
@@ -260,6 +273,31 @@ async function runTool(supabase: any, userId: string, name: string, input: any, 
         if (!d) return `Geen schemadag gevonden op ${date}.`
         const { error } = await supabase.from('plan_days').update({ coach_note: String(input.note).slice(0, 240) }).eq('id', d.id)
         return error ? 'Fout: ' + error.message : `Notitie opgeslagen bij ${date}: "${String(input.note).slice(0, 240)}"`
+      }
+      case 'get_schedule': {
+        let q = supabase.from('plan_days').select('*').eq('user_id', userId).order('date', { ascending: true })
+        if (input.week) q = q.eq('week_no', Math.round(input.week))
+        else if (input.from || input.to) {
+          if (input.from) q = q.gte('date', input.from)
+          if (input.to) q = q.lte('date', input.to)
+        } else {
+          q = q.gte('date', today).limit(7)
+        }
+        const { data: days } = await q
+        if (!days?.length) return 'Geen schemadagen gevonden voor die selectie.'
+        const DOW = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za']
+        const dow = (iso: string) => DOW[new Date(iso + 'T12:00:00').getDay()]
+        const out = days.slice(0, 21).map((d: any) => {
+          const done: string[] = d.done_keys || []
+          const lines = (d.blocks || []).map((b: any) => {
+            const items = b.items
+              .map((it: any) => `    ${done.includes(it.key) ? '✓' : '·'} ${it.name} — ${it.detail}`)
+              .join('\n')
+            return `  ${b.label}:\n${items}`
+          })
+          return `${d.date} (${dow(d.date)}) week ${d.week_no}, fase ${d.phase_target} — ${d.title}${d.is_rest ? ' [rustdag]' : ''}${d.coach_note ? `\n  Coach-focus: ${d.coach_note}` : ''}\n${lines.join('\n')}`
+        })
+        return out.join('\n\n')
       }
       default:
         return 'Onbekende tool: ' + name
