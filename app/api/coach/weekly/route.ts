@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/config'
+import { SUPABASE_URL, SUPABASE_ANON_KEY, coachModel } from '@/lib/config'
 import { kompasContext } from '@/lib/kompas'
 
 export const runtime = 'nodejs'
@@ -136,7 +136,7 @@ ${nextWeekEx || 'geen'}`
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: process.env.COACH_MODEL || 'claude-sonnet-4-6',
+      model: coachModel(),
       max_tokens: 1600,
       system: SYSTEM,
       messages: [{ role: 'user', content: `Hier is mijn weekdata. Maak de weekevaluatie en pas mijn komende weken bij.\n\n${context}` }],

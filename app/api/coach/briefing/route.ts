@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/config'
+import { SUPABASE_URL, SUPABASE_ANON_KEY, briefingModel } from '@/lib/config'
 import { goalStreak, streakFrom, readiness, daysUntil } from '@/lib/game'
 import { kompasContext } from '@/lib/kompas'
 
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: process.env.BRIEFING_MODEL || 'claude-haiku-4-5',
+      model: briefingModel(),
       max_tokens: 500,
       system: SYSTEM,
       messages: [{ role: 'user', content: `Data van vanochtend:\n${L.join('\n')}` }],
