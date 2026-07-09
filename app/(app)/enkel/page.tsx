@@ -159,7 +159,7 @@ export default function Enkel() {
             onClick={() => setPhase(p.n)}
             className={`rounded-xl border py-2.5 font-display text-sm font-bold ${
               phaseN === p.n
-                ? 'border-neon bg-neon/10 text-neon shadow-[0_0_14px_rgba(0,229,160,.2)]'
+                ? 'border-neon bg-neon/10 text-neon shadow-[0_0_14px_rgba(217,179,106,.25)]'
                 : 'border-line bg-panel text-muted'
             }`}
           >
@@ -267,8 +267,8 @@ export default function Enkel() {
             <Stepper label="Balans dicht rechts" value={f.balance_r} onChange={(v: any) => set('balance_r', v)} step={1} unit="sec" />
             <Stepper label="Heel raises links" value={f.heel_raises_l} onChange={(v: any) => set('heel_raises_l', v)} step={1} unit="reps" />
             <Stepper label="Heel raises rechts" value={f.heel_raises_r} onChange={(v: any) => set('heel_raises_r', v)} step={1} unit="reps" />
-            <Slider label="Pijn deze week" value={f.pain_week} onChange={(v: any) => set('pain_week', v)} min={0} color="#FF4D5E" />
-            <Slider label="Instabiliteitsgevoel" value={f.instability} onChange={(v: any) => set('instability', v)} min={0} color="#FFB020" />
+            <Slider label="Pijn deze week" value={f.pain_week} onChange={(v: any) => set('pain_week', v)} min={0} color="#E25A48" />
+            <Slider label="Instabiliteitsgevoel" value={f.instability} onChange={(v: any) => set('instability', v)} min={0} color="#E0873A" />
             <button onClick={saveCheck} disabled={busy} className="btn-primary mt-2 w-full py-3">
               {busy ? 'Opslaan…' : 'Enkelcheck opslaan'}
             </button>

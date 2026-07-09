@@ -98,16 +98,16 @@ export default function CheckIn() {
 
       <section className="card">
         <p className="lbl mb-1">Lichaam & geest</p>
-        <Slider label="Humeur" value={f.mood} onChange={(v: any) => set('mood', v)} min={1} color="#3EA6FF" low="Zwaar" high="Top" />
-        <Slider label="Energie" value={f.energy} onChange={(v: any) => set('energy', v)} min={1} color="#00E5A0" low="Leeg" high="Vol" />
-        <Slider label="Slaapkwaliteit" value={f.sleep_quality} onChange={(v: any) => set('sleep_quality', v)} min={1} color="#8B5CF6" />
-        <Slider label="Voeding vandaag" value={f.nutrition_score} onChange={(v: any) => set('nutrition_score', v)} min={1} color="#FFB020" low="Los" high="Strak" />
+        <Slider label="Humeur" value={f.mood} onChange={(v: any) => set('mood', v)} min={1} color="#7FB596" low="Zwaar" high="Top" />
+        <Slider label="Energie" value={f.energy} onChange={(v: any) => set('energy', v)} min={1} color="#D9B36A" low="Leeg" high="Vol" />
+        <Slider label="Slaapkwaliteit" value={f.sleep_quality} onChange={(v: any) => set('sleep_quality', v)} min={1} color="#C0794E" />
+        <Slider label="Voeding vandaag" value={f.nutrition_score} onChange={(v: any) => set('nutrition_score', v)} min={1} color="#E0873A" low="Los" high="Strak" />
       </section>
 
       <section className="card">
         <p className="lbl mb-1">Enkel</p>
-        <Slider label="Pijn" value={f.ankle_pain} onChange={(v: any) => set('ankle_pain', v)} min={0} color="#FF4D5E" low="0 = geen" high="10 = ernstig" />
-        <Slider label="Stabiliteit" value={f.ankle_stability} onChange={(v: any) => set('ankle_stability', v)} min={0} color="#00E5A0" low="Wankel" high="Rotsvast" />
+        <Slider label="Pijn" value={f.ankle_pain} onChange={(v: any) => set('ankle_pain', v)} min={0} color="#E25A48" low="0 = geen" high="10 = ernstig" />
+        <Slider label="Stabiliteit" value={f.ankle_stability} onChange={(v: any) => set('ankle_stability', v)} min={0} color="#D9B36A" low="Wankel" high="Rotsvast" />
         {f.ankle_pain >= 6 && (
           <p className="mt-1 rounded-lg border border-danger/30 bg-danger/10 p-2.5 text-xs leading-relaxed text-danger">
             🔴 Rood in het stoplichtmodel: vandaag geen enkelbelasting en 2 dagen een stap terug in het protocol. Houdt

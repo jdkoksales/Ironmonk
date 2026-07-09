@@ -39,7 +39,7 @@ export default function Profiel() {
       </div>
 
       <section className="card flex items-center gap-4">
-        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-neon/40 bg-neon/5 font-display text-3xl text-neon shadow-[0_0_20px_rgba(0,229,160,.2)]">
+        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-neon/40 bg-neon/5 font-display text-3xl text-neon shadow-[0_0_20px_rgba(217,179,106,.25)]">
           {lv.hanzi}
         </span>
         <div>
