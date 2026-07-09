@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/config'
+import { SUPABASE_URL, SUPABASE_ANON_KEY, coachModel } from '@/lib/config'
 import { PHASES } from '@/lib/protocol'
 
 export const runtime = 'nodejs'
@@ -321,7 +321,7 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model: process.env.COACH_MODEL || 'claude-sonnet-5',
+        model: coachModel(),
         max_tokens: 1500,
         system: `${SYSTEM}\n\nVandaag is ${clientDate}.\n\nDATA VAN DE ATLEET (live uit de app):\n${context}`,
         tools: TOOLS,
