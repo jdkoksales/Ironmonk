@@ -1,8 +1,9 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { Send, Copy, Sparkles, CalendarCheck, Sunrise } from 'lucide-react'
+import { Send, Copy, CalendarCheck } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { coachContext, weekReport, todayISO } from '@/lib/game'
+import { MasterPortrait, MasterSays, MASTER } from '@/components/master'
 
 const QUICK = [
   'Wat is mijn focus voor vandaag?',
@@ -137,46 +138,44 @@ export default function Coach() {
   return (
     <div className="flex min-h-[calc(100dvh-200px)] flex-col pt-4">
       <div className="mb-3 flex items-center justify-between">
-        <div>
-          <p className="lbl">Coach Iron Monk</p>
-          <h1 className="font-display text-xl font-bold text-ink">Shifu spreekt</h1>
+        <div className="flex items-center gap-3">
+          <MasterPortrait size={46} halo={false} />
+          <div>
+            <p className="lbl">{MASTER.hanzi} · {MASTER.meaning}</p>
+            <h1 className="title-gold font-display text-xl font-bold">{MASTER.title} {MASTER.name}</h1>
+          </div>
         </div>
         <button onClick={copyReport} className="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs">
           <Copy size={13} />
-          {copied ? 'Gekopieerd ✓' : 'Weekrapport'}
+          {copied ? 'Gekopieerd ✓' : 'Rapport'}
         </button>
       </div>
 
       <button
         onClick={() => runWeekly(false)}
         disabled={busy}
-        className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-neon py-3 font-display text-sm font-bold tracking-wide text-bg shadow-[0_0_24px_rgba(0,229,160,.35)] disabled:opacity-40"
+        className="btn-primary mb-3 flex w-full items-center justify-center gap-2 py-3"
       >
         <CalendarCheck size={16} />
         Weekevaluatie — beoordeel & stel mijn schema bij
       </button>
 
       {(briefing || briefBusy) && (
-        <div className="card mb-3 border-amber/25">
-          <div className="mb-1.5 flex items-center gap-2">
-            <Sunrise size={14} className="text-amber" />
-            <span className="lbl">Ochtendbriefing</span>
-          </div>
-          {briefing ? (
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">{briefing}</p>
-          ) : (
-            <p className="animate-pulse text-sm text-muted">Shifu overdenkt je ochtend…</p>
-          )}
+        <div className="mb-3">
+          <MasterSays label="Woorden van vanochtend">
+            {briefing || <span className="animate-pulse text-muted">{MASTER.name} overdenkt je ochtend…</span>}
+          </MasterSays>
         </div>
       )}
 
       <div className="flex-1 space-y-3 overflow-y-auto pb-3">
         {msgs.length === 0 && (
-          <div className="card text-sm leading-relaxed text-muted">
-            <Sparkles size={16} className="mb-2 text-neon" />
-            Ik ken je data: check-ins, enkelfase, criteria en testresultaten. Vraag me om analyses, een dagfocus of een
-            aanpassing van je week. Ik respecteer altijd het stoplichtmodel — en bij rode vlaggen stuur ik je naar de
-            fysio.
+          <div className="card flex flex-col items-center py-7 text-center">
+            <MasterPortrait size={120} />
+            <p className="mt-4 max-w-[280px] text-sm leading-relaxed text-muted">
+              Ik ken je pad, {'​'}je schema, je enkel en je doelen — en ik kan ze voor je bijstellen.
+              Spreek vrijuit. Bij rode vlaggen stuur ik je naar de fysio; je fasecriteria zijn heilig.
+            </p>
           </div>
         )}
         {msgs.map((m: any, i: number) => (
@@ -212,7 +211,7 @@ export default function Coach() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           rows={1}
-          placeholder="Vraag je coach…"
+          placeholder={`Spreek met ${MASTER.name}…`}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()
@@ -224,7 +223,7 @@ export default function Coach() {
         <button
           onClick={() => send(input)}
           disabled={busy}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-neon text-bg shadow-[0_0_18px_rgba(0,229,160,.35)] disabled:opacity-40"
+          className="btn-primary grid h-11 w-11 shrink-0 place-items-center !px-0 !py-0"
         >
           <Send size={17} />
         </button>

@@ -123,7 +123,7 @@ export function AppProvider({ children }: any) {
     return (
       <div className="grid min-h-dvh place-items-center bg-bg">
         <div className="text-center">
-          <div className="mx-auto mb-4 grid h-16 w-16 animate-pulse place-items-center rounded-full border-2 border-neon font-display text-2xl text-neon shadow-[0_0_30px_rgba(0,229,160,.35)]">
+          <div className="mx-auto mb-4 grid h-16 w-16 animate-pulse place-items-center rounded-full border-2 border-neon font-display text-2xl text-neon shadow-[0_0_30px_rgba(217,179,106,.4)]">
             铁
           </div>
           <p className="lbl">IRON MONK laden…</p>

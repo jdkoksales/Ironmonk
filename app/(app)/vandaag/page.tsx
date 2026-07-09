@@ -16,9 +16,10 @@ const BLOCK_ICON: any = {
   strength: Dumbbell, ankle: Footprints, conditioning: HeartPulse, stance: Timer,
   core: Flame, mobility: Activity, meditation: Brain, rest: BedDouble,
 }
+// Warm tempelpalet per bloktype: goud, koper, jade, fakkel-oranje.
 const BLOCK_COLOR: any = {
-  strength: '#00E5A0', ankle: '#FF8A3D', conditioning: '#3DA5FF', stance: '#FFB020',
-  core: '#FF4D5E', mobility: '#B18CFF', meditation: '#4ADE80', rest: '#7A8B94',
+  strength: '#D9B36A', ankle: '#E0873A', conditioning: '#7FB596', stance: '#E8C684',
+  core: '#E25A48', mobility: '#C0794E', meditation: '#9DC3A8', rest: '#9E8E71',
 }
 
 function PlanToday() {
@@ -93,7 +94,7 @@ function PlanToday() {
 
       {day.coach_note && (
         <p className="mb-3 rounded-lg border border-neon/30 bg-neon/10 p-2.5 text-xs leading-relaxed text-ink">
-          <span className="font-semibold text-neon">Coach-focus:</span> {day.coach_note}
+          <span className="font-semibold text-neon">Tiě Shān:</span> {day.coach_note}
         </p>
       )}
 
@@ -217,7 +218,7 @@ export default function Vandaag() {
       ).length
     : 0
   const streak = streakFrom(app.checkins.map((c: any) => c.date))
-  const color = !rd ? '#7A8B94' : rd.score >= 75 ? '#00E5A0' : rd.score >= 50 ? '#FFB020' : '#FF4D5E'
+  const color = !rd ? '#9E8E71' : rd.score >= 75 ? '#D9B36A' : rd.score >= 50 ? '#E0873A' : '#E25A48'
   const dateLabel = new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
@@ -275,7 +276,7 @@ export default function Vandaag() {
           className={`mt-4 flex items-center justify-center gap-2 rounded-xl py-3 font-display text-sm font-bold tracking-wide ${
             today
               ? 'border border-line bg-panel2 text-muted'
-              : 'bg-neon text-bg shadow-[0_0_24px_rgba(0,229,160,.35)]'
+              : 'btn-primary'
           }`}
         >
           {today ? (

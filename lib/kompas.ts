@@ -129,12 +129,12 @@ export function kompasSummary(targets: Target[], tests: any[], profile: any) {
 }
 
 export const COURSE_META: Record<Course, { label: string; color: string }> = {
-  ahead: { label: 'vóór op schema', color: '#00E5A0' },
-  on: { label: 'op schema', color: '#7FE8C4' },
-  behind: { label: 'loopt achter', color: '#FFB020' },
-  stalled: { label: 'aandacht nodig', color: '#FF4D5E' },
-  pending: { label: 'wacht op meting', color: '#7A8B94' },
-  locked: { label: 'na enkelfase-vrijgave', color: '#7A8B94' },
+  ahead: { label: 'vóór op schema', color: '#D9B36A' },
+  on: { label: 'op schema', color: '#7FB596' },
+  behind: { label: 'loopt achter', color: '#E0873A' },
+  stalled: { label: 'aandacht nodig', color: '#E25A48' },
+  pending: { label: 'wacht op meting', color: '#9E8E71' },
+  locked: { label: 'na enkelfase-vrijgave', color: '#9E8E71' },
 }
 
 // Compacte tekst voor coachContext / briefing (geen AI nodig om te berekenen).

@@ -1,7 +1,7 @@
 'use client'
 import { todayISO, addDays } from '@/lib/game'
 
-export function Ring({ v = 0, size = 150, stroke = 11, color = '#00E5A0', track = '#16202A', children }: any) {
+export function Ring({ v = 0, size = 150, stroke = 11, color = '#D9B36A', track = '#2A2114', children }: any) {
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
   const off = c * (1 - Math.max(0, Math.min(100, v)) / 100)
@@ -27,7 +27,7 @@ export function Ring({ v = 0, size = 150, stroke = 11, color = '#00E5A0', track 
   )
 }
 
-export function Spark({ data = [], w = 300, h = 64, color = '#00E5A0' }: any) {
+export function Spark({ data = [], w = 300, h = 64, color = '#D9B36A' }: any) {
   const vals = data.filter((v: any) => v != null).map(Number)
   if (vals.length < 2)
     return <div className="flex h-16 items-center justify-center text-xs text-muted">Nog te weinig data</div>
@@ -65,7 +65,7 @@ export function XPBar({ pct = 0 }: any) {
   )
 }
 
-export function Slider({ label, value, onChange, min = 0, max = 10, step = 1, color = '#00E5A0', low, high }: any) {
+export function Slider({ label, value, onChange, min = 0, max = 10, step = 1, color = '#D9B36A', low, high }: any) {
   return (
     <div className="py-2">
       <div className="mb-1.5 flex items-baseline justify-between">
@@ -137,7 +137,7 @@ export function Chips({ options, values = [], onToggle }: any) {
             onClick={() => onToggle(o)}
             className={`rounded-full border px-3.5 py-1.5 text-sm transition-all ${
               on
-                ? 'border-neon bg-neon/10 text-neon shadow-[0_0_12px_rgba(0,229,160,.25)]'
+                ? 'border-neon bg-neon/10 text-neon shadow-[0_0_12px_rgba(217,179,106,.3)]'
                 : 'border-line bg-panel2 text-muted'
             }`}
           >
@@ -159,7 +159,7 @@ export function Dots({ dates }: any) {
         <div
           key={d}
           className={`h-2.5 w-2.5 rounded-full ${
-            set.has(d) ? 'bg-neon shadow-[0_0_8px_rgba(0,229,160,.7)]' : 'border border-line bg-panel2'
+            set.has(d) ? 'bg-neon shadow-[0_0_8px_rgba(217,179,106,.75)]' : 'border border-line bg-panel2'
           }`}
         />
       ))}

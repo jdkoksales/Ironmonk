@@ -4,10 +4,10 @@ import { Spark } from '@/components/viz'
 import { todayISO } from '@/lib/game'
 
 const METRICS = [
-  { key: 'weight', label: 'Gewicht', unit: 'kg', color: '#00E5A0', dec: 1 },
-  { key: 'rhr', label: 'Rusthartslag', unit: 'bpm', color: '#FF4D5E', dec: 0 },
-  { key: 'sleep_hours', label: 'Slaap', unit: 'uur', color: '#8B5CF6', dec: 1 },
-  { key: 'energy', label: 'Energie', unit: '/10', color: '#FFB020', dec: 0 },
+  { key: 'weight', label: 'Gewicht', unit: 'kg', color: '#D9B36A', dec: 1 },
+  { key: 'rhr', label: 'Rusthartslag', unit: 'bpm', color: '#E25A48', dec: 0 },
+  { key: 'sleep_hours', label: 'Slaap', unit: 'uur', color: '#C0794E', dec: 1 },
+  { key: 'energy', label: 'Energie', unit: '/10', color: '#E0873A', dec: 0 },
 ]
 
 export default function Trends() {
@@ -73,8 +73,8 @@ export default function Trends() {
                 className="w-full rounded-t-md"
                 style={{
                   height: `${Math.max(4, (w.n / maxW) * 78)}%`,
-                  background: w.n ? '#00E5A0' : '#1D2830',
-                  boxShadow: w.n ? '0 0 10px rgba(0,229,160,.3)' : 'none',
+                  background: w.n ? '#D9B36A' : '#2A2114',
+                  boxShadow: w.n ? '0 0 10px rgba(217,179,106,.35)' : 'none',
                 }}
               />
               <span className="text-[10px] text-muted">{w.label}</span>

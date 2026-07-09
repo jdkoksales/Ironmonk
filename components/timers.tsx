@@ -29,7 +29,13 @@ export function Modal({ title, onClose, children }: any) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-t-3xl border border-line bg-panel p-5 pb-8 sm:rounded-3xl"
+        className="w-full max-w-md rounded-t-3xl p-5 pb-8 sm:rounded-3xl"
+        style={{
+          background: 'linear-gradient(170deg, rgba(42,33,20,0.94), rgba(14,11,7,0.97))',
+          borderTop: '1px solid rgba(217,179,106,0.28)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 -18px 60px rgba(0,0,0,0.55)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -78,16 +84,24 @@ export function BreathTimer({ onClose }: any) {
   return (
     <Modal title="Ademwerk — Box breathing" onClose={finish}>
       <div className="flex flex-col items-center py-4">
+        {/* kaarsvlam boven de ademcirkel — zen */}
+        <div
+          className="animate-candle mb-2 h-5 w-3 rounded-full"
+          style={{
+            background: 'radial-gradient(50% 65% at 50% 70%, #f2d193 0%, #e0873a 55%, transparent 100%)',
+            boxShadow: '0 0 18px rgba(224,135,58,.6)',
+          }}
+        />
         <div className="relative grid h-52 w-52 place-items-center">
           <div className="absolute inset-0 rounded-full border border-line" />
           <div
-            className="grid h-40 w-40 place-items-center rounded-full bg-azure/10 transition-transform duration-300 ease-linear"
-            style={{ transform: `scale(${scale})`, boxShadow: '0 0 40px rgba(62,166,255,.25)' }}
+            className="grid h-40 w-40 place-items-center rounded-full bg-jade/10 transition-transform duration-300 ease-linear"
+            style={{ transform: `scale(${scale})`, boxShadow: '0 0 46px rgba(127,181,150,.22)' }}
           >
-            <div className="h-24 w-24 rounded-full bg-azure/20" />
+            <div className="h-24 w-24 rounded-full bg-jade/20" />
           </div>
           <div className="absolute text-center">
-            <div className="font-display text-lg font-bold tracking-widest text-azure">{running ? phase : 'KLAAR?'}</div>
+            <div className="font-display text-lg font-bold tracking-widest text-jade">{running ? phase : 'KLAAR?'}</div>
             <div className="num font-display text-4xl text-ink">{running ? secLeft : '4·4·4·4'}</div>
           </div>
         </div>
@@ -147,7 +161,7 @@ export function StanceTimer({ onClose }: any) {
   return (
     <Modal title="Stance-timer — Ma Bu 马步" onClose={finish}>
       <div className="flex flex-col items-center py-2">
-        <Ring v={pct} size={180} color="#FFB020">
+        <Ring v={pct} size={180} color="#E0873A">
           <div className="num font-display text-5xl font-bold text-ink">{left ?? target}</div>
           <div className="lbl">seconden</div>
         </Ring>

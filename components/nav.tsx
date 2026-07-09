@@ -2,7 +2,10 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Home, Activity, ClipboardList, TrendingUp, MessageCircle, User, Flame, CalendarRange } from 'lucide-react'
+import {
+  Activity, ClipboardList, TrendingUp, MessageCircle, User, Flame, CalendarRange,
+  Landmark, Swords, Compass, MoreHorizontal, X,
+} from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { levelFor, streakFrom } from '@/lib/game'
 import { XPBar } from './viz'
@@ -38,8 +41,8 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur-xl">
       <div className="mx-auto max-w-md px-4 pb-2.5 pt-3">
         <div className="mb-2 flex items-center justify-between">
-          <Link href="/vandaag" className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl border border-neon/40 bg-neon/5 font-display text-lg text-neon shadow-[0_0_14px_rgba(0,229,160,.2)]">
+          <Link href="/tempel" className="flex items-center gap-2.5">
+            <span className="grid h-9 w-9 place-items-center rounded-xl border border-neon/40 bg-neon/5 font-display text-lg text-neon shadow-[0_0_14px_rgba(217,179,106,.3)]">
               {lv.hanzi}
             </span>
             <div>
@@ -78,7 +81,7 @@ export function Header() {
         {chips.map((c) => (
           <div
             key={c.id}
-            className="animate-rise rounded-full border border-violet/50 bg-violet/15 px-3 py-1 font-display text-sm font-bold text-violet shadow-[0_0_16px_rgba(139,92,246,.4)]"
+            className="animate-rise rounded-full border border-violet/50 bg-violet/15 px-3 py-1 font-display text-sm font-bold text-violet shadow-[0_0_16px_rgba(192,121,78,.45)]"
           >
             +{c.amount} XP
           </div>
@@ -90,7 +93,7 @@ export function Header() {
           className="fixed inset-0 z-50 grid place-items-center bg-bg/80 backdrop-blur-sm"
           onClick={() => setLvlUp(null)}
         >
-          <div className="card animate-pop w-72 border-neon/40 text-center shadow-[0_0_60px_rgba(0,229,160,.25)]">
+          <div className="card animate-pop w-72 border-neon/40 text-center shadow-[0_0_60px_rgba(217,179,106,.3)]">
             <div className="font-display text-6xl text-neon">{lvlUp.hanzi}</div>
             <div className="lbl mt-3">Level {lvlUp.level} bereikt</div>
             <div className="font-display text-2xl font-bold text-ink">{lvlUp.rank}</div>
@@ -103,36 +106,103 @@ export function Header() {
 }
 
 const TABS = [
-  { href: '/vandaag', label: 'Vandaag', icon: Home },
+  { href: '/tempel', label: 'Tempel', icon: Landmark },
+  { href: '/vandaag', label: 'Vandaag', icon: Swords },
   { href: '/schema', label: 'Schema', icon: CalendarRange },
-  { href: '/enkel', label: 'Enkel', icon: Activity },
-  { href: '/testen', label: 'Testen', icon: ClipboardList },
-  { href: '/trends', label: 'Trends', icon: TrendingUp },
-  { href: '/coach', label: 'Coach', icon: MessageCircle },
+  { href: '/coach', label: 'Meester', icon: MessageCircle },
+]
+
+const MORE = [
+  { href: '/enkel', label: 'Enkel', desc: '4-fasen protocol & criteria', icon: Activity },
+  { href: '/testen', label: 'Testen', desc: 'Testbatterij & media-kluis', icon: ClipboardList },
+  { href: '/kompas', label: 'Kompas', desc: 'Dengfeng-standaard & koers', icon: Compass },
+  { href: '/trends', label: 'Trends', desc: 'Gewicht, hartslag, slaap', icon: TrendingUp },
+  { href: '/profiel', label: 'Profiel', desc: 'Rang, badges & instellingen', icon: User },
 ]
 
 export function BottomNav() {
   const path = usePathname()
+  const [more, setMore] = useState(false)
+  const moreOn = MORE.some((m) => path?.startsWith(m.href))
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg/90 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-md items-stretch justify-between px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-1.5">
-        {TABS.map((t) => {
-          const on = path?.startsWith(t.href)
-          const Icon = t.icon
-          return (
-            <Link
-              key={t.href}
-              href={t.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] ${
-                on ? 'text-neon' : 'text-muted'
-              }`}
-            >
-              <Icon size={20} style={on ? { filter: 'drop-shadow(0 0 6px rgba(0,229,160,.8))' } : undefined} />
-              {t.label}
-            </Link>
-          )
-        })}
-      </div>
-    </nav>
+    <>
+      {more && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setMore(false)}>
+          <div
+            className="animate-fadeUp w-full max-w-md rounded-t-3xl p-5 pb-[max(env(safe-area-inset-bottom),20px)]"
+            style={{
+              background: 'linear-gradient(170deg, rgba(42,33,20,0.92), rgba(16,12,7,0.96))',
+              borderTop: '1px solid rgba(217,179,106,0.25)',
+              backdropFilter: 'blur(20px)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <span className="lbl">De tempelvleugels</span>
+              <button onClick={() => setMore(false)} className="grid h-8 w-8 place-items-center rounded-full border border-line text-muted">
+                <X size={15} />
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              {MORE.map((m) => {
+                const Icon = m.icon
+                const on = path?.startsWith(m.href)
+                return (
+                  <Link
+                    key={m.href}
+                    href={m.href}
+                    onClick={() => setMore(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 ${on ? 'bg-neon/10' : 'bg-panel2/60'}`}
+                  >
+                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${on ? 'bg-neon/15 text-neon' : 'bg-panel text-muted'}`}>
+                      <Icon size={17} />
+                    </span>
+                    <span className="flex-1">
+                      <span className={`block text-sm font-semibold ${on ? 'text-neon' : 'text-ink'}`}>{m.label}</span>
+                      <span className="block text-[11px] text-muted">{m.desc}</span>
+                    </span>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40"
+        style={{
+          background: 'linear-gradient(180deg, rgba(11,9,7,0.82), rgba(11,9,7,0.95))',
+          borderTop: '1px solid rgba(217,179,106,0.14)',
+          backdropFilter: 'blur(18px)',
+          WebkitBackdropFilter: 'blur(18px)',
+        }}
+      >
+        <div className="mx-auto flex max-w-md items-stretch justify-between px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-1.5">
+          {TABS.map((t) => {
+            const on = path?.startsWith(t.href)
+            const Icon = t.icon
+            return (
+              <Link
+                key={t.href}
+                href={t.href}
+                className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] ${
+                  on ? 'text-neon' : 'text-muted'
+                }`}
+              >
+                <Icon size={20} style={on ? { filter: 'drop-shadow(0 0 7px rgba(217,179,106,.9))' } : undefined} />
+                {t.label}
+              </Link>
+            )
+          })}
+          <button
+            onClick={() => setMore(true)}
+            className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] ${moreOn ? 'text-neon' : 'text-muted'}`}
+          >
+            <MoreHorizontal size={20} style={moreOn ? { filter: 'drop-shadow(0 0 7px rgba(217,179,106,.9))' } : undefined} />
+            Meer
+          </button>
+        </div>
+      </nav>
+    </>
   )
 }

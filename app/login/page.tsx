@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { sb } from '@/lib/supabase'
+import { Atmosphere } from '@/components/atmosphere'
 
 export default function Login() {
   const supabase = sb()
@@ -25,25 +26,33 @@ export default function Login() {
         const retry = await supabase.auth.signInWithPassword({ email, password: pw })
         if (retry.error) return setInfo('Account aangemaakt — log nu in met dezelfde gegevens.')
       }
-      router.replace('/vandaag')
+      router.replace('/tempel')
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password: pw })
       setBusy(false)
       if (error)
         return setErr(error.message === 'Invalid login credentials' ? 'Onjuiste inloggegevens.' : error.message)
-      router.replace('/vandaag')
+      router.replace('/tempel')
     }
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-bg px-6">
+    <main className="grid min-h-dvh place-items-center px-6">
+      <Atmosphere intensity="full" />
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 grid h-20 w-20 place-items-center rounded-3xl border border-neon/40 bg-neon/5 font-display text-4xl text-neon shadow-[0_0_40px_rgba(0,229,160,.25)]">
+        <div className="animate-fadeUp mb-8 text-center">
+          <div
+            className="animate-breathe mx-auto mb-5 grid h-24 w-24 place-items-center rounded-full font-display text-5xl text-neon"
+            style={{
+              background: 'radial-gradient(60% 60% at 50% 40%, rgba(217,179,106,0.14), rgba(11,9,7,0.4))',
+              border: '1px solid rgba(217,179,106,0.45)',
+              boxShadow: '0 0 60px rgba(217,179,106,0.25), inset 0 1px 0 rgba(241,232,212,0.15)',
+            }}
+          >
             铁
           </div>
-          <h1 className="font-display text-3xl font-bold tracking-[0.22em] text-ink">IRON MONK</h1>
-          <p className="mt-1 text-sm text-muted">12 weken. Eén missie. Dengfeng.</p>
+          <h1 className="title-gold font-display text-3xl font-bold tracking-[0.22em]">IRON MONK</h1>
+          <p className="mt-2 text-sm text-muted">De tempelpoort staat open. Je meester wacht.</p>
         </div>
         <div className="card space-y-3">
           <input
@@ -66,7 +75,7 @@ export default function Login() {
           {err && <p className="text-sm text-danger">{err}</p>}
           {info && <p className="text-sm text-neon">{info}</p>}
           <button onClick={go} disabled={busy || !email || pw.length < 6} className="btn-primary w-full py-3">
-            {busy ? 'Bezig…' : mode === 'in' ? 'Inloggen' : 'Account aanmaken'}
+            {busy ? 'De poort opent…' : mode === 'in' ? 'Betreed de tempel' : 'Begin je pad'}
           </button>
           <button
             onClick={() => {
