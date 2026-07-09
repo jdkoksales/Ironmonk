@@ -2,10 +2,12 @@
 // Schema-overzicht: het volledige 12-weken-pad, vooruit én terug bladerbaar.
 // Puur database-lookup (plan_days) — geen AI-calls.
 import { useMemo, useState } from 'react'
-import { ChevronDown, CheckCircle2, Circle, BatteryLow, FlaskConical, MapPin } from 'lucide-react'
+import { ChevronDown, CheckCircle2, Circle, BatteryLow, FlaskConical, MapPin, PlayCircle } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { todayISO, daysUntil } from '@/lib/game'
 import { PROGRAM_WEEKS, isDeload, isTaper, RETEST_WEEKS } from '@/lib/plan'
+import { findExercise } from '@/lib/exercises'
+import { ExerciseSheet } from '@/components/exercise-sheet'
 
 const fmt = (iso: string) =>
   new Date(iso + 'T12:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
@@ -30,6 +32,7 @@ export default function Schema() {
   const curWeekNo = plan.find((d: any) => d.date === today)?.week_no ?? null
   const [openWeek, setOpenWeek] = useState<number | null>(curWeekNo ?? (weeks[0]?.no ?? null))
   const [openDay, setOpenDay] = useState<string | null>(null)
+  const [demo, setDemo] = useState<{ ex: any; name: string } | null>(null)
 
   if (!app?.profile) return null
 
@@ -160,18 +163,25 @@ export default function Schema() {
                               <div className="space-y-1">
                                 {b.items.map((it: any) => {
                                   const checked = (d.done_keys || []).includes(it.key)
+                                  const ex = findExercise(it.name)
                                   return (
-                                    <div key={it.key} className="flex items-start gap-2">
+                                    <button
+                                      key={it.key}
+                                      onClick={() => ex && setDemo({ ex, name: it.name })}
+                                      disabled={!ex}
+                                      className="flex w-full items-start gap-2 text-left"
+                                    >
                                       {checked ? (
                                         <CheckCircle2 size={13} className="mt-0.5 shrink-0 text-neon" />
                                       ) : (
                                         <Circle size={13} className="mt-0.5 shrink-0 text-line" />
                                       )}
-                                      <p className="text-xs leading-snug">
+                                      <p className="flex-1 text-xs leading-snug">
                                         <span className={checked ? 'text-muted line-through' : 'text-ink'}>{it.name}</span>{' '}
                                         <span className="text-muted">— {it.detail}</span>
                                       </p>
-                                    </div>
+                                      {ex && <PlayCircle size={12} className="mt-0.5 shrink-0 text-copper" />}
+                                    </button>
                                   )
                                 })}
                               </div>
@@ -192,6 +202,7 @@ export default function Schema() {
           </section>
         )
       })}
+      {demo && <ExerciseSheet ex={demo.ex} itemName={demo.name} onClose={() => setDemo(null)} />}
       <div className="h-2" />
     </div>
   )

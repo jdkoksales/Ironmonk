@@ -3,8 +3,10 @@ import Link from 'next/link'
 import { useState } from 'react'
 import {
   CheckCircle2, Circle, Wind, Timer, ChevronRight, Dumbbell, Footprints,
-  HeartPulse, Flame, Brain, BedDouble, Activity, Compass, Target as TargetIcon,
+  HeartPulse, Flame, Brain, BedDouble, Activity, Compass, Target as TargetIcon, PlayCircle,
 } from 'lucide-react'
+import { findExercise } from '@/lib/exercises'
+import { ExerciseSheet } from '@/components/exercise-sheet'
 import { useApp } from '@/lib/store'
 import { readiness, todayISO, daysUntil, streakFrom, XP, goalStreak } from '@/lib/game'
 import { kompasSummary, COURSE_META } from '@/lib/kompas'
@@ -24,6 +26,7 @@ const BLOCK_COLOR: any = {
 
 function PlanToday() {
   const app = useApp()
+  const [demo, setDemo] = useState<{ ex: any; name: string } | null>(null)
   const day = app.plan?.find((d: any) => d.date === todayISO())
   if (!day) {
     const next = app.plan?.find((d: any) => d.date > todayISO())
@@ -121,24 +124,29 @@ function PlanToday() {
               <div className="space-y-1.5">
                 {b.items.map((it: any) => {
                   const checked = done.includes(it.key)
+                  const ex = findExercise(it.name)
                   return (
-                    <button
-                      key={it.key}
-                      onClick={() => toggle(it)}
-                      className="flex w-full items-start gap-2.5 rounded-lg px-1 py-1 text-left"
-                    >
-                      {checked ? (
-                        <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-neon" />
-                      ) : (
-                        <Circle size={18} className="mt-0.5 shrink-0 text-line" />
-                      )}
-                      <span className="flex-1">
-                        <span className={`text-sm ${checked ? 'text-muted line-through' : 'text-ink'}`}>
-                          {it.name}
+                    <div key={it.key} className="flex items-start gap-2.5 rounded-lg px-1 py-1">
+                      <button onClick={() => toggle(it)} aria-label="afvinken" className="mt-0.5 shrink-0">
+                        {checked ? (
+                          <CheckCircle2 size={18} className="text-neon" />
+                        ) : (
+                          <Circle size={18} className="text-line" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => (ex ? setDemo({ ex, name: it.name }) : toggle(it))}
+                        className="flex flex-1 items-start gap-1.5 text-left"
+                      >
+                        <span className="flex-1">
+                          <span className={`text-sm ${checked ? 'text-muted line-through' : 'text-ink'}`}>
+                            {it.name}
+                          </span>
+                          <span className="block text-[11px] text-muted">{it.detail}</span>
                         </span>
-                        <span className="block text-[11px] text-muted">{it.detail}</span>
-                      </span>
-                    </button>
+                        {ex && <PlayCircle size={15} className="mt-0.5 shrink-0 text-copper" />}
+                      </button>
+                    </div>
                   )
                 })}
               </div>
@@ -146,6 +154,7 @@ function PlanToday() {
           )
         })}
       </div>
+      {demo && <ExerciseSheet ex={demo.ex} itemName={demo.name} onClose={() => setDemo(null)} />}
     </section>
   )
 }
