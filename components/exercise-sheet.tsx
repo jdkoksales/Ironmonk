@@ -1,7 +1,10 @@
 'use client'
 // Oefenscherm: demonstratie-animatie, spierkaart, techniek, fouten, ademhaling,
 // tempo/rust en de tip van Meester Tiě Shān — alles in één sheet, geen YouTube nodig.
-import { useState } from 'react'
+// Rendert via een portal naar <body>: ouders met backdrop-filter/transform zouden
+// position:fixed anders "vangen" (de sheet leek dan onderaan de pagina te staan).
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, CheckCircle2, AlertTriangle, Wind, Timer, Hourglass } from 'lucide-react'
 import { Figure } from './figure'
 import { MasterSays, MASTER } from './master'
@@ -85,14 +88,17 @@ function Body({ view, p, s }: { view: 'front' | 'back'; p: Muscle[]; s: Muscle[]
 
 export function ExerciseSheet({ ex, itemName, onClose }: { ex: Exercise; itemName?: string; onClose: () => void }) {
   const [variant, setVariant] = useState(-1) // -1 = basis
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
   const active = variant >= 0 && ex.varianten ? ex.varianten[variant] : null
   const pattern = active?.pattern || ex.pattern
   const hasMuscles = ex.spieren.p.length > 0
 
-  return (
+  if (!mounted) return null
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl p-5 pb-[max(env(safe-area-inset-bottom),24px)]"
+        className="max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl p-5 pb-[max(env(safe-area-inset-bottom),24px)]"
         style={{
           background: 'linear-gradient(170deg, rgba(42,33,20,0.95), rgba(14,11,7,0.98))',
           borderTop: '1px solid rgba(217,179,106,0.28)',
@@ -221,6 +227,7 @@ export function ExerciseSheet({ ex, itemName, onClose }: { ex: Exercise; itemNam
           <MasterSays label={`${MASTER.name} over deze oefening`}>{ex.tip}</MasterSays>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
