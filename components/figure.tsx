@@ -269,7 +269,7 @@ function lerpPose(a: Required<Pose>, b: Required<Pose>, t: number): Required<Pos
 }
 const full = (p: Pose): Required<Pose> => ({ ...BASE, ...p })
 
-export function Figure({ pattern, size = 220, tint = '#e8d9b0' }: { pattern: string; size?: number; tint?: string }) {
+export function Figure({ pattern, size = 220 }: { pattern: string; size?: number }) {
   const ref = useRef<SVGSVGElement>(null)
   const pat = PATTERNS[pattern] || PATTERNS.meditatie
 
@@ -284,26 +284,56 @@ export function Figure({ pattern, size = 220, tint = '#e8d9b0' }: { pattern: str
 
     const draw = (pose: Required<Pose>) => {
       const P = fk(pose)
-      const set = (id: string, pts: [number, number][]) => {
-        const el = svg.querySelector(`[data-j="${id}"]`)
-        if (el) el.setAttribute('points', pts.map((p) => p.join(',')).join(' '))
+      const q = (sel: string) => svg.querySelector(`[data-j="${sel}"]`)
+      const line = (id: string, a: [number, number], b: [number, number]) => {
+        const el = q(id)
+        if (el) {
+          el.setAttribute('x1', a[0].toFixed(1)); el.setAttribute('y1', a[1].toFixed(1))
+          el.setAttribute('x2', b[0].toFixed(1)); el.setAttribute('y2', b[1].toFixed(1))
+        }
       }
-      set('legB', [P.hip, P.knB, P.anB, P.toB])
-      set('armB', [P.sh, P.elB, P.wrB])
-      set('torso', [P.hip, P.sh])
-      set('legF', [P.hip, P.knF, P.anF, P.toF])
-      set('armF', [P.sh, P.elF, P.wrF])
-      const head = svg.querySelector('[data-j="head"]')
-      if (head) { head.setAttribute('cx', String(P.headC[0])); head.setAttribute('cy', String(P.headC[1])) }
-      const sash = svg.querySelector('[data-j="sash"]')
-      if (sash) sash.setAttribute('points', [P.sh, P.hip].map((p) => p.join(',')).join(' '))
+      const dot = (id: string, p: [number, number], r?: number) => {
+        const el = q(id)
+        if (el) {
+          el.setAttribute('cx', p[0].toFixed(1)); el.setAttribute('cy', p[1].toFixed(1))
+          if (r) el.setAttribute('r', r.toFixed(1))
+        }
+      }
+      const mix = (a: [number, number], b: [number, number], t: number): [number, number] =>
+        [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
+
+      // achterste ledematen
+      line('thighB', P.hip, P.knB); line('shinB', P.knB, P.anB); line('footB', P.anB, P.toB)
+      line('armUB', P.sh, P.elB); line('armLB', P.elB, P.wrB)
+      dot('handB', P.wrB)
+      // romp: bekken → borst, met sjerp en nek
+      line('torso', mix(P.hip, P.sh, 0.02), mix(P.hip, P.sh, 0.92))
+      dot('pelvis', P.hip)
+      dot('chest', mix(P.hip, P.sh, 0.74))
+      line('sash', mix(P.hip, P.sh, 0.22), mix(P.hip, P.sh, 0.86))
+      line('neck', mix(P.hip, P.sh, 0.95), mix(P.sh, P.headC, 0.55))
+      dot('head', P.headC)
+      // voorste ledematen
+      line('thighF', P.hip, P.knF); line('shinF', P.knF, P.anF); line('footF', P.anF, P.toF)
+      line('armUF', P.sh, P.elF); line('armLF', P.elF, P.wrF)
+      dot('handF', P.wrF)
+      // dynamische schaduw: kleiner & lichter zodra het lichaam loskomt van de vloer
+      const lowest = Math.max(P.toF[1], P.toB[1], P.anF[1], P.anB[1])
+      const air = Math.max(0, Math.min(1, (FLOOR - lowest) / 55))
+      const shadow = q('shadow')
+      if (shadow) {
+        const cx = (P.anF[0] + P.anB[0]) / 2
+        shadow.setAttribute('cx', cx.toFixed(1))
+        shadow.setAttribute('rx', (46 - 24 * air).toFixed(1))
+        shadow.setAttribute('opacity', (0.55 - 0.3 * air).toFixed(2))
+      }
       // props die met het lichaam meebewegen
-      const bar = svg.querySelector('[data-j="prop-bar"]') as SVGGElement | null
+      const bar = q('prop-bar') as SVGGElement | null
       if (bar) {
         const anchor = pat.prop === 'barbell-rug' ? P.sh : pat.prop === 'dumbbells' ? null : P.wrF
         if (anchor) bar.setAttribute('transform', `translate(${anchor[0]} ${anchor[1]})`)
         if (pat.prop === 'dumbbells') {
-          const d1 = svg.querySelector('[data-j="db1"]'); const d2 = svg.querySelector('[data-j="db2"]')
+          const d1 = q('db1'); const d2 = q('db2')
           if (d1) d1.setAttribute('transform', `translate(${P.wrF[0]} ${P.wrF[1]})`)
           if (d2) d2.setAttribute('transform', `translate(${P.wrB[0]} ${P.wrB[1]})`)
         }
@@ -332,7 +362,16 @@ export function Figure({ pattern, size = 220, tint = '#e8d9b0' }: { pattern: str
     return () => cancelAnimationFrame(raf)
   }, [pattern]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const lw = 7
+  // Gevuld monnik-silhouet: huid (blote borst/armen), saffraanbroek, koperen
+  // sjerp. Massa via variabele segmentdiktes + gewrichtscirkels; achterste
+  // ledematen donkerder voor diepte.
+  const SKIN = '#e6c795'
+  const SKIN_B = '#a98c5f'
+  const PANTS = '#c2762e'
+  const PANTS_B = '#8d541d'
+  const FOOT = '#5a3a1e'
+  const FOOT_B = '#453014'
+  const cap = { strokeLinecap: 'round' as const }
   return (
     <svg ref={ref} viewBox="0 0 200 190" width={size} height={size * 0.86} className="mx-auto block">
       <defs>
@@ -340,11 +379,16 @@ export function Figure({ pattern, size = 220, tint = '#e8d9b0' }: { pattern: str
           <stop offset="0" stopColor="#d9b36a" stopOpacity="0.14" />
           <stop offset="1" stopColor="#d9b36a" stopOpacity="0" />
         </linearGradient>
+        <radialGradient id="fig-shadow" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stopColor="#000" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#000" stopOpacity="0" />
+        </radialGradient>
       </defs>
-      {/* vloer */}
+      {/* vloer + dynamische schaduw */}
       <line x1="12" y1={FLOOR} x2="188" y2={FLOOR} stroke="#332917" strokeWidth="2" strokeLinecap="round" />
       <ellipse cx="100" cy={FLOOR} rx="58" ry="7" fill="url(#fig-glow)" />
-      {/* vaste props */}
+      <ellipse data-j="shadow" cx="100" cy={FLOOR + 1} rx="46" ry="5.5" fill="url(#fig-shadow)" />
+      {/* vaste props (achter het lichaam) */}
       {pat.prop === 'rekstok' && (
         <g stroke="#6e5836" strokeWidth="3">
           <line x1="52" y1="30" x2="148" y2="30" strokeLinecap="round" stroke="#9a7c4d" />
@@ -364,29 +408,40 @@ export function Figure({ pattern, size = 220, tint = '#e8d9b0' }: { pattern: str
           <line x1="130" y1="118" x2="130" y2={FLOOR} opacity="0.4" />
         </g>
       )}
-      {/* achterste ledematen */}
-      <polyline data-j="legB" fill="none" stroke={tint} strokeOpacity="0.42" strokeWidth={lw} strokeLinecap="round" strokeLinejoin="round" />
-      <polyline data-j="armB" fill="none" stroke={tint} strokeOpacity="0.42" strokeWidth={lw - 1} strokeLinecap="round" strokeLinejoin="round" />
-      {/* romp + saffraan sjerp */}
-      <polyline data-j="torso" fill="none" stroke={tint} strokeWidth={lw + 4} strokeLinecap="round" />
-      <polyline data-j="sash" fill="none" stroke="#c0794e" strokeWidth={3.5} strokeLinecap="round" opacity="0.9" />
-      {/* voorste ledematen */}
-      <polyline data-j="legF" fill="none" stroke={tint} strokeWidth={lw} strokeLinecap="round" strokeLinejoin="round" />
-      <polyline data-j="armF" fill="none" stroke={tint} strokeWidth={lw - 1} strokeLinecap="round" strokeLinejoin="round" />
+      {/* ——— achterste ledematen (donkerder = diepte) ——— */}
+      <line data-j="armUB" stroke={SKIN_B} strokeWidth="7.5" {...cap} />
+      <line data-j="armLB" stroke={SKIN_B} strokeWidth="6" {...cap} />
+      <circle data-j="handB" r="3.2" fill={SKIN_B} />
+      <line data-j="thighB" stroke={PANTS_B} strokeWidth="10.5" {...cap} />
+      <line data-j="shinB" stroke={PANTS_B} strokeWidth="8" {...cap} />
+      <line data-j="footB" stroke={FOOT_B} strokeWidth="5.5" {...cap} />
+      {/* ——— romp: bekken (broek), buik/borst (huid), sjerp, nek ——— */}
+      <circle data-j="pelvis" r="8" fill={PANTS} />
+      <line data-j="torso" stroke={SKIN} strokeWidth="15" {...cap} />
+      <circle data-j="chest" r="8.6" fill={SKIN} />
+      <line data-j="sash" stroke="#b06a3a" strokeWidth="4.5" {...cap} opacity="0.95" />
+      <line data-j="neck" stroke={SKIN} strokeWidth="6.5" {...cap} />
+      {/* ——— voorste ledematen ——— */}
+      <line data-j="thighF" stroke={PANTS} strokeWidth="11" {...cap} />
+      <line data-j="shinF" stroke={PANTS} strokeWidth="8.5" {...cap} />
+      <line data-j="footF" stroke={FOOT} strokeWidth="6" {...cap} />
+      <line data-j="armUF" stroke={SKIN} strokeWidth="8" {...cap} />
+      <line data-j="armLF" stroke={SKIN} strokeWidth="6.5" {...cap} />
+      <circle data-j="handF" r="3.5" fill={SKIN} />
       {/* hoofd */}
-      <circle data-j="head" r={L.headR} fill={tint} />
-      {/* bewegende props */}
+      <circle data-j="head" r={L.headR} fill={SKIN} />
+      {/* bewegende props (vóór het lichaam) */}
       {(pat.prop === 'barbell' || pat.prop === 'barbell-rug' || pat.prop === 'barbell-hand') && (
         <g data-j="prop-bar">
-          <line x1="-26" y1="0" x2="26" y2="0" stroke="#9a7c4d" strokeWidth="3" strokeLinecap="round" />
-          <circle cx="-26" cy="0" r="6.5" fill="#54422a" stroke="#9a7c4d" />
-          <circle cx="26" cy="0" r="6.5" fill="#54422a" stroke="#9a7c4d" />
+          <line x1="-28" y1="0" x2="28" y2="0" stroke="#9a7c4d" strokeWidth="3.5" strokeLinecap="round" />
+          <circle cx="-28" cy="0" r="7.5" fill="#54422a" stroke="#9a7c4d" strokeWidth="1.5" />
+          <circle cx="28" cy="0" r="7.5" fill="#54422a" stroke="#9a7c4d" strokeWidth="1.5" />
         </g>
       )}
       {pat.prop === 'dumbbells' && (
         <g data-j="prop-bar">
-          <g data-j="db1"><rect x="-7" y="-3" width="14" height="6" rx="2" fill="#54422a" stroke="#9a7c4d" /></g>
-          <g data-j="db2" opacity="0.5"><rect x="-7" y="-3" width="14" height="6" rx="2" fill="#54422a" stroke="#9a7c4d" /></g>
+          <g data-j="db1"><rect x="-8" y="-3.5" width="16" height="7" rx="2.5" fill="#54422a" stroke="#9a7c4d" /></g>
+          <g data-j="db2" opacity="0.5"><rect x="-8" y="-3.5" width="16" height="7" rx="2.5" fill="#54422a" stroke="#9a7c4d" /></g>
         </g>
       )}
     </svg>
