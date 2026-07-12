@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { SUPABASE_URL, SUPABASE_ANON_KEY, briefingModel } from '@/lib/config'
+import { coachById, briefingSystem } from '@/lib/coaches'
 import { goalStreak, streakFrom, readiness, daysUntil } from '@/lib/game'
 import { kompasContext } from '@/lib/kompas'
 
@@ -103,7 +104,7 @@ export async function POST(req: Request) {
     body: JSON.stringify({
       model: briefingModel(),
       max_tokens: 500,
-      system: SYSTEM,
+      system: profile?.coach_id && profile.coach_id !== 'tieshan' ? briefingSystem(coachById(profile.coach_id)) : SYSTEM,
       messages: [{ role: 'user', content: `Data van vanochtend:\n${L.join('\n')}` }],
     }),
   })

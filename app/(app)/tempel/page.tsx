@@ -8,7 +8,8 @@ import { useApp } from '@/lib/store'
 import { todayISO, daysUntil, streakFrom, goalStreak } from '@/lib/game'
 import { kompasSummary } from '@/lib/kompas'
 import { proverbOfDay } from '@/lib/protocol'
-import { MasterPortrait, MasterSays, MASTER } from '@/components/master'
+import { coachById } from '@/lib/coaches'
+import { CoachPortrait, CoachSays } from '@/components/coach-portrait'
 
 const MOTIVATIE = [
   'IJzer wordt niet gesmeed op zachte dagen. Vandaag telt.',
@@ -49,6 +50,7 @@ export default function Tempel() {
   }, [app?.user])
 
   if (!app?.profile) return null
+  const coach = coachById(app.profile.coach_id)
 
   const h = new Date().getHours()
   const groet = h < 6 ? 'De nacht is nog jong' : h < 12 ? 'Goedemorgen' : h < 18 ? 'Goedemiddag' : 'Goedenavond'
@@ -75,13 +77,13 @@ export default function Tempel() {
 
       {/* De meester */}
       <div className="animate-fadeUp d1 mt-4">
-        <MasterPortrait size={196} />
+        <CoachPortrait coachId={coach.id} size={196} />
       </div>
       <h1 className="animate-fadeUp d2 title-gold mt-5 text-center font-display text-[26px] font-bold tracking-[0.06em]">
-        {MASTER.title} {MASTER.name}
+        {coach.titel} {coach.naam}
       </h1>
       <div className="animate-fadeUp d2 mt-0.5 text-[11px] uppercase tracking-[0.3em] text-muted">
-        {MASTER.hanzi} · {MASTER.meaning}
+        {coach.tag}
       </div>
 
       <p className="animate-fadeUp d3 mt-4 text-center text-base text-ink">
@@ -92,9 +94,9 @@ export default function Tempel() {
         {/* Woorden van de meester (ochtendbriefing) */}
         {(briefing || briefBusy) && (
           <div className="animate-fadeUp d3">
-            <MasterSays label={`${MASTER.name} spreekt`}>
+            <CoachSays coachId={coach.id}>
               {briefing || <span className="animate-pulse text-muted">De meester overdenkt je ochtend…</span>}
-            </MasterSays>
+            </CoachSays>
           </div>
         )}
 
@@ -167,7 +169,7 @@ export default function Tempel() {
             className="btn-primary flex w-full items-center justify-center gap-2 py-3.5 text-[15px]"
           >
             <MessageCircle size={17} />
-            Spreek met {MASTER.name}
+            Spreek met {coach.naam}
           </Link>
           <Link href="/vandaag" className="btn-ghost flex w-full items-center justify-center gap-2 py-3">
             Betreed de trainingshal

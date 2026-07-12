@@ -1,9 +1,12 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { LogOut } from 'lucide-react'
+import { LogOut, ChevronRight } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { LEVELS, levelFor, badges } from '@/lib/game'
+import { coachById } from '@/lib/coaches'
+import { CoachPortrait } from '@/components/coach-portrait'
 
 export default function Profiel() {
   const app = useApp()
@@ -50,6 +53,26 @@ export default function Profiel() {
             {app.profile.xp} XP {lv.next ? `· nog ${lv.next.xp - app.profile.xp} tot ${lv.next.rank}` : '· maximum'}
           </div>
         </div>
+      </section>
+
+      <section className="card">
+        <p className="lbl mb-2">Jouw coach</p>
+        <div className="flex items-center gap-3">
+          <CoachPortrait coachId={app.profile.coach_id} size={52} halo={false} />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-ink">
+              {coachById(app.profile.coach_id).titel} {coachById(app.profile.coach_id).naam}
+            </div>
+            <div className="text-[11px] text-muted">{coachById(app.profile.coach_id).specialiteit}</div>
+          </div>
+          <Link href="/intake" className="btn-ghost flex items-center gap-1 px-3 py-2 text-xs">
+            Wisselen <ChevronRight size={13} />
+          </Link>
+        </div>
+        <p className="mt-2 text-[10px] leading-relaxed text-muted">
+          Wisselen start een nieuwe intake; je schema vanaf volgende week wordt dan vervangen door het plan van je
+          nieuwe coach.
+        </p>
       </section>
 
       <section className="card space-y-3">
