@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { SUPABASE_URL, SUPABASE_ANON_KEY, coachModel } from '@/lib/config'
+import { coachById, weeklySystem } from '@/lib/coaches'
 import { kompasContext } from '@/lib/kompas'
 
 export const runtime = 'nodejs'
@@ -138,7 +139,7 @@ ${nextWeekEx || 'geen'}`
     body: JSON.stringify({
       model: coachModel(),
       max_tokens: 1600,
-      system: SYSTEM,
+      system: profile?.coach_id && profile.coach_id !== 'tieshan' ? weeklySystem(coachById(profile.coach_id)) : SYSTEM,
       messages: [{ role: 'user', content: `Hier is mijn weekdata. Maak de weekevaluatie en pas mijn komende weken bij.\n\n${context}` }],
     }),
   })

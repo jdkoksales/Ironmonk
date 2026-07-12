@@ -53,13 +53,16 @@ export function AppProvider({ children }: any) {
       const ins = await supabase.from('profiles').insert({ id: user.id }).select().single()
       profile = ins.data
     }
-    // Self-seed (geen AI): vul ontbrekende dagen van het 12-weken-schema aan.
+    // Self-seed (geen AI): alléén voor het Shaolin-traject van Tiě Shān.
+    // Nieuwe gebruikers krijgen hun plan uit de intake-plangenerator.
     let plan = pl.data || []
-    const have = new Set(plan.map((d: any) => d.date))
-    const missing = planRows(user.id).filter((r) => !have.has(r.date))
-    if (missing.length) {
-      const { data: seeded } = await supabase.from('plan_days').insert(missing).select()
-      plan = [...plan, ...(seeded || [])].sort((a: any, b: any) => (a.date < b.date ? -1 : 1))
+    if (profile?.coach_id === 'tieshan') {
+      const have = new Set(plan.map((d: any) => d.date))
+      const missing = planRows(user.id).filter((r) => !have.has(r.date))
+      if (missing.length) {
+        const { data: seeded } = await supabase.from('plan_days').insert(missing).select()
+        plan = [...plan, ...(seeded || [])].sort((a: any, b: any) => (a.date < b.date ? -1 : 1))
+      }
     }
     setS({
       loading: false,

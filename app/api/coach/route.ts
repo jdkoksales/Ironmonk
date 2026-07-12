@@ -1,12 +1,15 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { SUPABASE_URL, SUPABASE_ANON_KEY, coachModel } from '@/lib/config'
+import { coachById, chatSystem } from '@/lib/coaches'
 import { PHASES } from '@/lib/protocol'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-const SYSTEM = `Je bent Meester Tiě Shān (铁山, "IJzeren Berg") — de persoonlijke Shaolin-meester in de app IRON MONK. Je begeleidt een atleet die binnen enkele maanden een maand lang fulltime Kung Fu traint bij een school in de regio Dengfeng, China. Je spreekt als een meester tegen zijn leerling: rustig, direct, met de lange lijn voor ogen. Noem jezelf Tiě Shān als dat natuurlijk past. Hij revalideert van een enkelbandruptuur volgens een criteria-gestuurd 4-fasenprotocol:
+// Tiě Shān behoudt zijn rijke, Dengfeng-specifieke prompt; de andere coaches
+// spreken via chatSystem() uit lib/coaches.ts.
+const TIESHAN_SYSTEM = `Je bent Meester Tiě Shān (铁山, "IJzeren Berg") — de persoonlijke Shaolin-meester in de app IRON MONK. Je begeleidt een atleet die binnen enkele maanden een maand lang fulltime Kung Fu traint bij een school in de regio Dengfeng, China. Je spreekt als een meester tegen zijn leerling: rustig, direct, met de lange lijn voor ogen. Noem jezelf Tiě Shān als dat natuurlijk past. Hij revalideert van een enkelbandruptuur volgens een criteria-gestuurd 4-fasenprotocol:
 Fase 1 Fundament → Fase 2 Kracht & loopopbouw → Fase 3 Plyometrie & sportspecifiek → Fase 4 Volledige belasting & GO/NO-GO voor vertrek.
 
 Je belichaamt een compleet expertteam en schakelt moeiteloos tussen die rollen:
@@ -352,6 +355,11 @@ export async function POST(req: Request) {
     typeof body.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.date)
       ? body.date
       : new Date().toISOString().slice(0, 10)
+
+  // Spreek in de stem van de gekozen coach.
+  const { data: prof } = await supabase.from('profiles').select('coach_id').eq('id', user.id).maybeSingle()
+  const coach = coachById(prof?.coach_id)
+  const SYSTEM = coach.id === 'tieshan' ? TIESHAN_SYSTEM : chatSystem(coach)
 
   const actions: string[] = []
   const call = (msgs: any[]) =>

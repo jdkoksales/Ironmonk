@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Send, Copy, CalendarCheck } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { coachContext, weekReport, todayISO } from '@/lib/game'
-import { MasterPortrait, MasterSays, MASTER } from '@/components/master'
+import { coachById } from '@/lib/coaches'
+import { CoachPortrait, CoachSays } from '@/components/coach-portrait'
 
 const QUICK = [
   'Wat is mijn focus voor vandaag?',
@@ -14,6 +15,7 @@ const QUICK = [
 
 export default function Coach() {
   const app = useApp()
+  const coach = coachById(app?.profile?.coach_id)
   const [msgs, setMsgs] = useState<any[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -139,10 +141,10 @@ export default function Coach() {
     <div className="flex min-h-[calc(100dvh-200px)] flex-col pt-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <MasterPortrait size={46} halo={false} />
+          <CoachPortrait coachId={coach.id} size={46} halo={false} />
           <div>
-            <p className="lbl">{MASTER.hanzi} · {MASTER.meaning}</p>
-            <h1 className="title-gold font-display text-xl font-bold">{MASTER.title} {MASTER.name}</h1>
+            <p className="lbl">{coach.tag}</p>
+            <h1 className="title-gold font-display text-xl font-bold">{coach.titel} {coach.naam}</h1>
           </div>
         </div>
         <button onClick={copyReport} className="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs">
@@ -162,16 +164,16 @@ export default function Coach() {
 
       {(briefing || briefBusy) && (
         <div className="mb-3">
-          <MasterSays label="Woorden van vanochtend">
-            {briefing || <span className="animate-pulse text-muted">{MASTER.name} overdenkt je ochtend…</span>}
-          </MasterSays>
+          <CoachSays coachId={coach.id} label="Woorden van vanochtend">
+            {briefing || <span className="animate-pulse text-muted">{coach.naam} overdenkt je ochtend…</span>}
+          </CoachSays>
         </div>
       )}
 
       <div className="flex-1 space-y-3 overflow-y-auto pb-3">
         {msgs.length === 0 && (
           <div className="card flex flex-col items-center py-7 text-center">
-            <MasterPortrait size={120} />
+            <CoachPortrait coachId={coach.id} size={120} />
             <p className="mt-4 max-w-[280px] text-sm leading-relaxed text-muted">
               Ik ken je pad, {'​'}je schema, je enkel en je doelen — en ik kan ze voor je bijstellen.
               Spreek vrijuit. Bij rode vlaggen stuur ik je naar de fysio; je fasecriteria zijn heilig.
@@ -211,7 +213,7 @@ export default function Coach() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           rows={1}
-          placeholder={`Spreek met ${MASTER.name}…`}
+          placeholder={`Spreek met ${coach.naam}…`}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()
