@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { findExercise } from '@/lib/exercises'
 import { ExerciseSheet } from '@/components/exercise-sheet'
+import { SessionPlayer } from '@/components/session-player'
 import { useApp } from '@/lib/store'
 import { readiness, todayISO, daysUntil, streakFrom, XP, goalStreak } from '@/lib/game'
 import { kompasSummary, COURSE_META } from '@/lib/kompas'
@@ -27,6 +28,7 @@ const BLOCK_COLOR: any = {
 function PlanToday() {
   const app = useApp()
   const [demo, setDemo] = useState<{ ex: any; name: string } | null>(null)
+  const [training, setTraining] = useState(false)
   const day = app.plan?.find((d: any) => d.date === todayISO())
   if (!day) {
     const next = app.plan?.find((d: any) => d.date > todayISO())
@@ -105,6 +107,16 @@ function PlanToday() {
         <p className="mb-3 text-xs italic text-muted">Rustdag — herstel is training. Vink af wat je doet.</p>
       )}
 
+      {!day.is_rest && doneCount < total && (
+        <button
+          onClick={() => setTraining(true)}
+          className="btn-primary mb-4 flex w-full items-center justify-center gap-2 py-4 text-base"
+        >
+          <PlayCircle size={19} />
+          {doneCount > 0 ? 'HERVAT TRAINING' : 'START TRAINING'}
+        </button>
+      )}
+
       <div className="space-y-3">
         {day.blocks.map((b: any, bi: number) => {
           const Icon = BLOCK_ICON[b.type] || Activity
@@ -155,6 +167,7 @@ function PlanToday() {
         })}
       </div>
       {demo && <ExerciseSheet ex={demo.ex} itemName={demo.name} onClose={() => setDemo(null)} />}
+      {training && <SessionPlayer day={day} onClose={() => setTraining(false)} />}
     </section>
   )
 }

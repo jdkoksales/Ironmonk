@@ -7,6 +7,8 @@ import { planRows } from './plan'
 
 const Ctx = createContext<any>(null)
 export const useApp = () => useContext(Ctx)
+// Alleen voor previews/tests: injecteer een mock-app zonder Supabase-sessie.
+export const AppContext = Ctx
 
 export function AppProvider({ children }: any) {
   const supabase = useMemo(() => sb(), [])
@@ -24,6 +26,7 @@ export function AppProvider({ children }: any) {
     goalLogs: [],
     targets: [],
     briefings: [],
+    setLogs: [],
   })
 
   const load = async () => {
@@ -42,11 +45,12 @@ export function AppProvider({ children }: any) {
       supabase.from('criteria_state').select('*').eq('user_id', user.id),
       supabase.from('plan_days').select('*').eq('user_id', user.id).order('date', { ascending: true }),
     ])
-    const [g, gl, tg, br] = await Promise.all([
+    const [g, gl, tg, br, sl] = await Promise.all([
       supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
       supabase.from('goal_logs').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(400),
       supabase.from('targets').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
       supabase.from('daily_briefings').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(5),
+      supabase.from('set_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(800),
     ])
     let profile = p.data
     if (!profile) {
@@ -77,6 +81,7 @@ export function AppProvider({ children }: any) {
       goalLogs: gl.data || [],
       targets: tg.data || [],
       briefings: br.data || [],
+      setLogs: sl.data || [],
     })
   }
 

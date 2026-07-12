@@ -77,7 +77,8 @@ export async function POST(req: Request) {
   const force = body?.force === true
   const today = todayISO()
 
-  const [{ data: profile }, { data: checkins }, { data: ankle }, { data: criteria }, { data: plan }, { data: targets }, { data: tests }] =
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)
+  const [{ data: profile }, { data: checkins }, { data: ankle }, { data: criteria }, { data: plan }, { data: targets }, { data: tests }, { data: sessions }, { data: sets }, { data: notes }] =
     await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
       supabase.from('daily_checkins').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(14),
@@ -86,6 +87,9 @@ export async function POST(req: Request) {
       supabase.from('plan_days').select('*').eq('user_id', user.id).order('date', { ascending: true }),
       supabase.from('targets').select('*').eq('user_id', user.id).eq('active', true),
       supabase.from('test_results').select('*').eq('user_id', user.id).order('tested_at', { ascending: true }).limit(1000),
+      supabase.from('workout_sessions').select('date, duration_sec, stats').eq('user_id', user.id).gte('date', weekAgo).order('date', { ascending: true }),
+      supabase.from('set_logs').select('exercise, reps, weight, seconds, date').eq('user_id', user.id).gte('date', weekAgo).limit(400),
+      supabase.from('coach_notes').select('note').eq('user_id', user.id).order('created_at', { ascending: false }).limit(6),
     ])
 
   // Cooldown — hooguit ~1×/week (kostenbeheersing).
@@ -129,6 +133,22 @@ Meditatie deze week: ${week.reduce((x: number, c: any) => x + (c.meditation_min 
 ${a ? `Laatste enkelcheck (${a.week_date}): figure-8/omtrek ${a.figure8_l ?? '-'}/${a.figure8_r ?? '-'} | knee-to-wall ${a.ktw_l ?? '-'}/${a.ktw_r ?? '-'} | balans ${a.balance_l ?? '-'}/${a.balance_r ?? '-'} | heel raises ${a.heel_raises_l ?? '-'}/${a.heel_raises_r ?? '-'} | weekpijn ${a.pain_week ?? '-'} | instabiliteit ${a.instability ?? '-'}` : 'Nog geen enkelcheck ingevuld.'}
 Schema-adherentie afgelopen 7 dagen (afgevinkt/totaal):
 ${adherence || 'geen'}
+${(() => {
+  if (!sessions?.length && !sets?.length) return ''
+  const totSets = sets?.length || 0
+  const vol = (sets || []).reduce((a: number, s: any) => a + (s.weight && s.reps ? Number(s.weight) * Number(s.reps) : 0), 0)
+  const prs = (sessions || []).reduce((a: number, x: any) => a + (x.stats?.prs || 0), 0)
+  const perEx: Record<string, string> = {}
+  for (const s of sets || []) {
+    if (s.weight && s.reps) {
+      const cur = `${s.weight} kg × ${s.reps}`
+      if (!perEx[s.exercise] || Number(s.weight) > parseFloat(perEx[s.exercise])) perEx[s.exercise] = cur
+    }
+  }
+  const top = Object.entries(perEx).slice(0, 8).map(([e, v]) => `${e}: ${v}`).join(' · ')
+  return `Gelogde trainingen deze week: ${sessions?.length || 0} sessies, ${totSets} sets, ${Math.round(vol)} kg totaalvolume, ${prs} PR's.${top ? `\nZwaarste sets: ${top}` : ''}`
+})()}
+${notes?.length ? `Jouw geheugen-notities over deze pupil:\n${notes.map((n: any) => `- ${n.note}`).join('\n')}` : ''}
 ${targets?.length ? kompasContext(targets as any, tests || [], profile) + '\nStuur bij op het kompas: benoem waar hij vóór ligt of achterloopt en verschuif accenten in de aanpasbare blokken.' : ''}
 Aanpasbare oefeningen komende week (week ${nextWeekNo ?? '-'}):
 ${nextWeekEx || 'geen'}`

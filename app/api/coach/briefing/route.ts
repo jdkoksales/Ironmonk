@@ -63,7 +63,7 @@ export async function POST(req: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return Response.json({ error: 'ANTHROPIC_API_KEY ontbreekt in Vercel.' }, { status: 503 })
 
-  const [{ data: profile }, { data: checkins }, { data: plan }, { data: goals }, { data: goalLogs }, { data: targets }, { data: tests }] =
+  const [{ data: profile }, { data: checkins }, { data: plan }, { data: goals }, { data: goalLogs }, { data: targets }, { data: tests }, { data: lastSession }, { data: notes }] =
     await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
       supabase.from('daily_checkins').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(15),
@@ -72,6 +72,8 @@ export async function POST(req: Request) {
       supabase.from('goal_logs').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(200),
       supabase.from('targets').select('*').eq('user_id', user.id).eq('active', true),
       supabase.from('test_results').select('*').eq('user_id', user.id).order('tested_at', { ascending: true }).limit(1000),
+      supabase.from('workout_sessions').select('date, duration_sec, stats').eq('user_id', user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('coach_notes').select('note').eq('user_id', user.id).order('created_at', { ascending: false }).limit(4),
     ])
 
   const cs = checkins || []
@@ -97,6 +99,11 @@ export async function POST(req: Request) {
       'Doelen: ' + goals.map((g: any) => `${g.title}${g.type.startsWith('habit') ? ` (streak ${goalStreak(g.id, goalLogs || [])} dgn)` : ''}`).join(' · ')
     )
   if (targets?.length) L.push(kompasContext(targets as any, tests || [], profile))
+  if (lastSession?.stats)
+    L.push(
+      `Laatste gelogde training (${lastSession.date}): ${lastSession.stats.sets || 0} sets, ${lastSession.stats.volume || 0} kg volume, ${lastSession.stats.prs || 0} PR's, ${Math.round((lastSession.duration_sec || 0) / 60)} min.`
+    )
+  if (notes?.length) L.push('Jouw geheugen-notities over deze pupil: ' + notes.map((n: any) => n.note).join(' · '))
 
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
