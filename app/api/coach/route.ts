@@ -136,6 +136,16 @@ const TOOLS = [
     },
   },
   {
+    name: 'remember',
+    description:
+      'Sla een blijvende notitie over je pupil op in je geheugen (voorkeuren, blessuredetails, afspraken, mijlpalen). Gebruik dit wanneer je iets leert dat je in latere gesprekken wilt onthouden.',
+    input_schema: {
+      type: 'object' as const,
+      properties: { note: { type: 'string', description: 'De notitie, kort en feitelijk (max ±200 tekens)' } },
+      required: ['note'],
+    },
+  },
+  {
     name: 'get_schedule',
     description:
       'Bekijk het volledige trainingsschema met exacte oefeningen, sets/reps/gewicht en rust. Geef een weeknummer (1-12) OF een datumbereik (from/to). Zonder argumenten: de komende 7 dagen.',
@@ -277,6 +287,15 @@ async function runTool(supabase: any, userId: string, name: string, input: any, 
         const { error } = await supabase.from('plan_days').update({ coach_note: String(input.note).slice(0, 240) }).eq('id', d.id)
         return error ? 'Fout: ' + error.message : `Notitie opgeslagen bij ${date}: "${String(input.note).slice(0, 240)}"`
       }
+      case 'remember': {
+        const { data: prof2 } = await supabase.from('profiles').select('coach_id').eq('id', userId).maybeSingle()
+        const { error } = await supabase.from('coach_notes').insert({
+          user_id: userId,
+          coach_id: prof2?.coach_id || 'tieshan',
+          note: String(input.note || '').slice(0, 240),
+        })
+        return error ? 'Fout: ' + error.message : 'Genoteerd in je geheugen.'
+      }
       case 'get_schedule': {
         let q = supabase.from('plan_days').select('*').eq('user_id', userId).order('date', { ascending: true })
         if (input.week) q = q.eq('week_no', Math.round(input.week))
@@ -356,10 +375,20 @@ export async function POST(req: Request) {
       ? body.date
       : new Date().toISOString().slice(0, 10)
 
-  // Spreek in de stem van de gekozen coach.
-  const { data: prof } = await supabase.from('profiles').select('coach_id').eq('id', user.id).maybeSingle()
+  // Spreek in de stem van de gekozen coach — mét geheugen (intake + notities).
+  const [{ data: prof }, { data: notes }, { data: intake }] = await Promise.all([
+    supabase.from('profiles').select('coach_id').eq('id', user.id).maybeSingle(),
+    supabase.from('coach_notes').select('note, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(8),
+    supabase.from('intakes').select('data').eq('user_id', user.id).eq('status', 'done').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+  ])
   const coach = coachById(prof?.coach_id)
   const SYSTEM = coach.id === 'tieshan' ? TIESHAN_SYSTEM : chatSystem(coach)
+  const memory = [
+    intake?.data ? `INTAKEPROFIEL van je pupil (uit jullie kennismakingsgesprek):\n${JSON.stringify(intake.data).slice(0, 2500)}` : '',
+    notes?.length
+      ? `JOUW GEHEUGEN (eerdere notities, nieuwste eerst — verwijs hier natuurlijk naar):\n${notes.map((n: any) => `- [${String(n.created_at).slice(0, 10)}] ${n.note}`).join('\n')}`
+      : '',
+  ].filter(Boolean).join('\n\n')
 
   const actions: string[] = []
   const call = (msgs: any[]) =>
@@ -369,7 +398,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         model: coachModel(),
         max_tokens: 1500,
-        system: `${SYSTEM}\n\nVandaag is ${clientDate}.\n\nDATA VAN DE ATLEET (live uit de app):\n${context}`,
+        system: `${SYSTEM}\n\nVandaag is ${clientDate}.\n${memory ? `\n${memory}\n` : ''}\nDATA VAN DE ATLEET (live uit de app):\n${context}`,
         tools: TOOLS,
         messages: msgs,
       }),

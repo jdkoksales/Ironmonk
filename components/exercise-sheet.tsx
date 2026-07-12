@@ -5,9 +5,10 @@
 // position:fixed anders "vangen" (de sheet leek dan onderaan de pagina te staan).
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, CheckCircle2, AlertTriangle, Wind, Timer, Hourglass } from 'lucide-react'
+import { X, CheckCircle2, AlertTriangle, Wind, Timer, Hourglass, TrendingUp } from 'lucide-react'
 import { Figure } from './figure'
 import { MasterSays, MASTER } from './master'
+import { useApp } from '@/lib/store'
 import type { Exercise, Muscle } from '@/lib/exercises'
 
 const GOLD = '#d9b36a'
@@ -87,12 +88,15 @@ function Body({ view, p, s }: { view: 'front' | 'back'; p: Muscle[]; s: Muscle[]
 }
 
 export function ExerciseSheet({ ex, itemName, onClose }: { ex: Exercise; itemName?: string; onClose: () => void }) {
+  const app = useApp()
   const [variant, setVariant] = useState(-1) // -1 = basis
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   const active = variant >= 0 && ex.varianten ? ex.varianten[variant] : null
   const pattern = active?.pattern || ex.pattern
   const hasMuscles = ex.spieren.p.length > 0
+  // jouw gelogde geschiedenis voor precies dit schema-item
+  const history = itemName ? ((app?.setLogs || []) as any[]).filter((l) => l.exercise === itemName).slice(0, 6) : []
 
   if (!mounted) return null
   return createPortal(
@@ -146,6 +150,26 @@ export function ExerciseSheet({ ex, itemName, onClose }: { ex: Exercise; itemNam
               ))}
             </div>
             {active && <p className="mt-2 rounded-lg bg-panel2/70 p-2.5 text-xs leading-relaxed text-ink/90">{active.note}</p>}
+          </div>
+        )}
+
+        {/* jouw historie */}
+        {history.length > 0 && (
+          <div className="card mt-3 !p-3.5">
+            <div className="mb-2 flex items-center gap-1.5">
+              <TrendingUp size={13} className="text-neon" />
+              <span className="lbl">Jouw laatste sets</span>
+            </div>
+            <div className="space-y-1">
+              {history.map((l: any) => (
+                <div key={l.id || l.created_at} className="flex justify-between text-[12px]">
+                  <span className="text-muted">{l.date?.slice(5)} · set {l.set_no}</span>
+                  <span className="num text-ink">
+                    {l.seconds ? `${Number(l.seconds)}s` : l.weight ? `${Number(l.weight)} kg × ${Number(l.reps)}` : `${Number(l.reps)} reps`}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
