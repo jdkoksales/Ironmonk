@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   Activity, ClipboardList, TrendingUp, MessageCircle, User, Flame, CalendarRange,
-  Landmark, Swords, Compass, MoreHorizontal, X,
+  Landmark, Swords, Compass, MoreHorizontal, X, Mountain,
 } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { levelFor, streakFrom } from '@/lib/game'
@@ -108,7 +108,7 @@ export function Header() {
 const TABS = [
   { href: '/tempel', label: 'Tempel', icon: Landmark },
   { href: '/vandaag', label: 'Vandaag', icon: Swords },
-  { href: '/schema', label: 'Schema', icon: CalendarRange },
+  { href: '/pad', label: 'Pad', icon: Mountain },
   { href: '/coach', label: 'Meester', icon: MessageCircle },
 ]
 
