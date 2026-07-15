@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, Circle } from 'lucide-react'
 import { useApp } from '@/lib/store'
-import { todayISO, XP, streakFrom, streakMult, goalStreak } from '@/lib/game'
+import { todayISO, XP, effectiveStreak, streakMult, goalStreak } from '@/lib/game'
 import { TRAINING_TYPES } from '@/lib/protocol'
 import { Slider, Stepper, Chips } from '@/components/viz'
 
@@ -67,8 +67,9 @@ export default function CheckIn() {
   const [busy, setBusy] = useState(false)
   const set = (k: string, v: any) => setF((x: any) => ({ ...x, [k]: v }))
 
+  const shieldDates = app?.profile?.shield_dates || []
   const xpPreview = Math.round(
-    XP.CHECKIN * streakMult(streakFrom([today, ...(app?.checkins.map((c: any) => c.date) || [])]))
+    XP.CHECKIN * streakMult(effectiveStreak([today, ...(app?.checkins.map((c: any) => c.date) || [])], shieldDates))
   )
 
   const save = async () => {
@@ -82,7 +83,7 @@ export default function CheckIn() {
       return
     }
     if (!ex) {
-      const streak = streakFrom([today, ...app.checkins.map((c: any) => c.date)])
+      const streak = effectiveStreak([today, ...app.checkins.map((c: any) => c.date)], shieldDates)
       await app.awardXp('checkin', XP.CHECKIN * streakMult(streak), { streak })
     }
     await app.refresh()

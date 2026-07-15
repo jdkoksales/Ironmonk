@@ -1,70 +1,54 @@
 'use client'
 // Bergpad (Mountain Path): De visuele bergklim naar Dengfeng. Elke dag een steen,
-// elke week een stap hoger. Fase-overgangen zijn poortwachters-proeven.
-// Rust-weken zijn theehuis-haltes. Tap om een dag in te zien.
+// elke week een stap hoger. Fase-overgangen zijn poortwachtersproeven, rustdagen
+// theehuis-haltes. Tik op een dag om de blokken van die dag te zien.
 import { useState, useMemo } from 'react'
 import { X } from 'lucide-react'
 import { useApp } from '@/lib/store'
-import { todayISO, daysUntil, streakFrom } from '@/lib/game'
-import { isDeload, isTaper } from '@/lib/plan'
+import { todayISO, daysUntil, effectiveStreak } from '@/lib/game'
 
-interface PathDay {
+const W = 280
+const H = 600
+const PAD = 34
+const CX = W / 2
+
+type PathDay = {
   date: string
   week_no: number
   day_no: number
   title: string
-  is_rest?: boolean
-  is_complete?: boolean
+  is_rest: boolean
+  is_complete: boolean
   phase_target: number
-  is_phase_transition?: boolean
-  position: number // 0-1 along the path
+  is_phase_transition: boolean
+  blockLabels: string[]
   x: number
   y: number
 }
 
-const DOW = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo']
 const fmt = (iso: string) =>
-  new Date(iso + 'T12:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
+  new Date(iso + 'T12:00:00').toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
 
-// SVG path generator: winding mountain trail from valley → mountain → temple
-function generateMountainPath(days: PathDay[]): string {
-  if (days.length === 0) return ''
-
-  const width = 280
-  const height = 600
-  const padding = 30
-
-  // Create path segments that wind side-to-side as we go up
-  let pathData = `M ${width / 2} ${height - padding}`
-  let x = width / 2
-  let y = height - padding
-  const stepHeight = (height - 2 * padding) / Math.max(days.length, 1)
-
-  for (let i = 0; i < days.length; i++) {
-    y -= stepHeight
-    // Alternate side to side for winding effect
+// Slingerend bergpad van de vallei (onder) naar de tempel (boven). Puur op index,
+// zodat het pad stabiel is ongeacht hoeveel dagen er zijn.
+function mountainPath(n: number): string {
+  if (n === 0) return ''
+  let d = `M ${CX} ${H - PAD}`
+  const step = (H - 2 * PAD) / Math.max(n, 1)
+  let y = H - PAD
+  for (let i = 0; i < n; i++) {
+    y -= step
     const side = i % 2 === 0 ? 1 : -1
-    const wave = Math.sin((i / days.length) * Math.PI * 4) * (width / 6)
-    x = width / 2 + wave + side * 20
-
+    const wave = Math.sin((i / n) * Math.PI * 4) * (W / 6)
+    const x = CX + wave + side * 20
     if (i % 3 === 0) {
-      // Curve segments for organic feel
-      const nextY = i < days.length - 1 ? y - stepHeight : y
-      pathData += ` Q ${x + side * 30} ${y} ${x} ${nextY}`
+      const nextY = i < n - 1 ? y - step : y
+      d += ` Q ${x + side * 30} ${y} ${x} ${nextY}`
     } else {
-      pathData += ` L ${x} ${y}`
+      d += ` L ${x} ${y}`
     }
   }
-
-  return pathData
-}
-
-// Position marker for character on path
-function positionOnPath(pathElement: SVGPathElement | null, t: number): { x: number; y: number } {
-  if (!pathElement) return { x: 150, y: 500 }
-  const length = pathElement.getTotalLength()
-  const point = pathElement.getPointAtLength(t * length)
-  return { x: point.x, y: point.y }
+  return d
 }
 
 export default function Bergpad() {
@@ -74,248 +58,188 @@ export default function Bergpad() {
   const profile = app?.profile || {}
   const checkins = app?.checkins || []
 
-  const [selectedDay, setSelectedDay] = useState<PathDay | null>(null)
-  const [pathRef, setPathRef] = useState<SVGPathElement | null>(null)
+  const [selected, setSelected] = useState<PathDay | null>(null)
+  const [pathEl, setPathEl] = useState<SVGPathElement | null>(null)
 
-  // Build path data with positions
-  const pathDays = useMemo(() => {
-    const completed = new Set(checkins.map((c: any) => c.date))
-    const days: PathDay[] = []
-    const totalDays = plan.length
-    const checkPhaseChange = (prev: number, curr: number) => curr > prev
-
-    for (let i = 0; i < plan.length; i++) {
-      const d = plan[i]
+  const pathDays = useMemo<PathDay[]>(() => {
+    return plan.map((d: any, i: number) => {
+      const total = (d.blocks || []).reduce((x: number, b: any) => x + b.items.length, 0)
+      const isComplete = !!d.completed_at || (d.done_keys?.length && d.done_keys.length >= total && total > 0)
       const prev = i > 0 ? plan[i - 1] : null
-      const isPrev = i > 0 && plan[i - 1].completed_at
-      const isCurr =
-        d.completed_at || (d.done_keys?.length && d.done_keys.length >= d.blocks.reduce((x: number, b: any) => x + b.items.length, 0))
-
-      days.push({
+      return {
         date: d.date,
         week_no: d.week_no,
         day_no: d.day_no,
         title: d.title,
-        is_rest: d.is_rest,
-        is_complete: isCurr,
+        is_rest: !!d.is_rest,
+        is_complete: !!isComplete,
         phase_target: d.phase_target,
-        is_phase_transition: prev ? checkPhaseChange(prev.phase_target, d.phase_target) : false,
-        position: i / totalDays,
+        is_phase_transition: prev ? d.phase_target > prev.phase_target : false,
+        blockLabels: (d.blocks || []).map((b: any) => b.label),
         x: 0,
         y: 0,
-      })
-    }
-    return days
-  }, [plan, checkins])
-
-  // Calculate x,y for each day on the path
-  const positionedDays = useMemo(() => {
-    if (!pathRef || pathDays.length === 0) return pathDays
-
-    return pathDays.map((d, i) => {
-      const length = pathRef.getTotalLength()
-      const point = pathRef.getPointAtLength((i / pathDays.length) * length)
-      return { ...d, x: point.x, y: point.y }
+      }
     })
-  }, [pathDays, pathRef])
+  }, [plan])
 
-  // Current position on path
-  const currentDayIndex = positionedDays.findIndex((d) => d.date === today)
-  const currentPos = currentDayIndex >= 0 ? currentDayIndex / Math.max(pathDays.length, 1) : 0
-  const currentPoint = pathRef && currentDayIndex >= 0 ? positionOnPath(pathRef, currentPos) : { x: 150, y: 500 }
+  const pathData = useMemo(() => mountainPath(pathDays.length), [pathDays.length])
 
-  const streak = streakFrom(checkins.map((c: any) => c.date))
+  // Plaats elke dag op het pad zodra de <path> gemeten kan worden.
+  const positioned = useMemo(() => {
+    if (!pathEl || pathDays.length === 0) return pathDays
+    const len = pathEl.getTotalLength()
+    return pathDays.map((d, i) => {
+      const p = pathEl.getPointAtLength((i / Math.max(pathDays.length - 1, 1)) * len)
+      return { ...d, x: p.x, y: p.y }
+    })
+  }, [pathDays, pathEl])
+
+  const curIndex = positioned.findIndex((d) => d.date === today)
+  const cur = curIndex >= 0 ? positioned[curIndex] : null
+
+  const streak = effectiveStreak(checkins.map((c: any) => c.date), profile.shield_dates || [])
   const dep = daysUntil(profile.departure_date)
-  const phase = profile.current_phase || 1
+  const doneCount = pathDays.filter((d) => d.is_complete).length
 
-  const pathData = generateMountainPath(positionedDays)
+  if (!app?.profile) return null
+
+  if (!plan.length)
+    return (
+      <div className="space-y-4 pt-4">
+        <div>
+          <p className="lbl">Jouw Bergpad</p>
+          <h1 className="font-display text-xl font-bold text-ink">De klim naar Dengfeng</h1>
+        </div>
+        <div className="card text-sm text-muted">Nog geen schema geladen — open Vandaag om je pad op te bouwen.</div>
+      </div>
+    )
 
   return (
     <div className="space-y-4 pt-4">
-      {/* Header */}
       <div>
         <p className="lbl">Jouw Bergpad</p>
         <h1 className="font-display text-xl font-bold text-ink">De klim naar Dengfeng</h1>
         <p className="mt-1 text-xs text-muted">
-          {currentDayIndex >= 0 ? `Dag ${currentDayIndex + 1}/${pathDays.length}` : 'Bereid je voor'} · Streak {streak}{' '}
-          {dep != null ? ` · nog ${dep} dagen tot vertrek` : ''}
+          {curIndex >= 0 ? `Dag ${curIndex + 1} van ${pathDays.length}` : 'Je pad wacht'} · {doneCount} volbracht · streak {streak}
+          {dep != null ? ` · nog ${dep} dagen` : ''}
         </p>
       </div>
 
-      {/* Mountain Path Visualization */}
-      <div className="card !p-3">
-        <svg viewBox="0 0 280 600" className="w-full" style={{ maxWidth: '100%', height: 'auto' }}>
-          {/* Path */}
-          <g>
-            {/* Sky gradient background */}
-            <defs>
-              <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" style={{ stopColor: 'rgba(20, 15, 10, 0.3)', stopOpacity: 1 }} />
-                <stop offset="100%" style={{ stopColor: 'rgba(42, 33, 20, 0.5)', stopOpacity: 1 }} />
-              </linearGradient>
-              <linearGradient id="pathGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" style={{ stopColor: 'rgba(217, 179, 106, 0.2)', stopOpacity: 1 }} />
-                <stop offset="100%" style={{ stopColor: 'rgba(192, 121, 78, 0.3)', stopOpacity: 1 }} />
-              </linearGradient>
-            </defs>
+      <div className="card !p-2">
+        <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" style={{ height: 'auto' }}>
+          <defs>
+            <linearGradient id="padSky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(217,179,106,0.08)" />
+              <stop offset="55%" stopColor="rgba(20,15,10,0)" />
+              <stop offset="100%" stopColor="rgba(42,33,20,0.35)" />
+            </linearGradient>
+          </defs>
 
-            {/* Background */}
-            <rect width="280" height="600" fill="url(#skyGrad)" />
+          <rect width={W} height={H} fill="url(#padSky)" />
 
-            {/* Mountain silhouette (subtle) */}
-            <path
-              d="M 0 400 Q 50 300 100 350 Q 140 250 200 350 Q 240 300 280 400 L 280 600 L 0 600 Z"
-              fill="rgba(60, 50, 40, 0.2)"
-              opacity="0.3"
-            />
+          {/* bergsilhouet */}
+          <path
+            d={`M 0 ${H * 0.62} Q ${W * 0.2} ${H * 0.46} ${W * 0.36} ${H * 0.55} Q ${W * 0.5} ${H * 0.36} ${W * 0.66} ${H * 0.55} Q ${W * 0.82} ${H * 0.46} ${W} ${H * 0.62} L ${W} ${H} L 0 ${H} Z`}
+            fill="rgba(60,50,40,0.18)"
+          />
 
-            {/* Main path line */}
-            <path
-              ref={setPathRef}
-              d={pathData}
-              stroke="rgba(217, 179, 106, 0.4)"
-              strokeWidth="3"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          {/* het pad */}
+          <path ref={setPathEl} d={pathData} stroke="rgba(217,179,106,0.32)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
 
-            {/* Path fill for visual depth */}
-            <path d={pathData} stroke="url(#pathGrad)" strokeWidth="1.5" fill="none" opacity="0.6" />
-
-            {/* Day markers */}
-            {positionedDays.map((day, idx) => {
+          {/* dagmarkers — pas tonen als het pad gemeten is */}
+          {pathEl &&
+            positioned.map((day) => {
               const isToday = day.date === today
-              const isFuture = day.date > today
-              const phaseChanged = day.is_phase_transition
-
               return (
-                <g key={day.date}>
-                  {/* Glow for completed days */}
-                  {day.is_complete && (
-                    <circle
-                      cx={day.x}
-                      cy={day.y}
-                      r="10"
-                      fill="rgba(217, 179, 106, 0.3)"
-                      opacity="0.6"
-                      style={{
-                        animation: `pulse 2s cubic-bezier(0.4, 0, 0.6, 1) ${idx * 0.1}s infinite`,
-                      }}
-                    />
-                  )}
-
-                  {/* Main stone/checkpoint */}
+                <g key={day.date} style={{ cursor: 'pointer' }} onClick={() => setSelected(day)}>
+                  {day.is_complete && <circle cx={day.x} cy={day.y} r="9" fill="#d9b36a" opacity="0.22" className="pad-glow" />}
                   <circle
                     cx={day.x}
                     cy={day.y}
                     r={isToday ? 7 : day.is_complete ? 6 : 4.5}
-                    fill={isToday ? '#d9b36a' : day.is_complete ? '#d9b36a' : 'rgba(217, 179, 106, 0.3)'}
-                    stroke={
-                      isToday
-                        ? 'rgba(217, 179, 106, 0.8)'
-                        : day.is_complete
-                          ? 'rgba(217, 179, 106, 0.5)'
-                          : 'rgba(217, 179, 106, 0.2)'
-                    }
-                    strokeWidth="1.5"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => setSelectedDay(day)}
+                    fill={isToday || day.is_complete ? '#d9b36a' : 'rgba(217,179,106,0.28)'}
+                    stroke={isToday ? 'rgba(255,240,214,0.85)' : day.is_complete ? 'rgba(217,179,106,0.5)' : 'rgba(217,179,106,0.2)'}
+                    strokeWidth={isToday ? 2 : 1.25}
                   />
-
-                  {/* Phase transition marker (gate) */}
-                  {phaseChanged && (
+                  {day.is_phase_transition && (
                     <>
-                      <circle cx={day.x} cy={day.y - 16} r="8" fill="none" stroke="#e8d5b7" strokeWidth="1.5" opacity="0.5" />
-                      <text x={day.x} y={day.y - 32} textAnchor="middle" fontSize="8" fill="#e8d5b7" opacity="0.6">
+                      <circle cx={day.x} cy={day.y} r="11" fill="none" stroke="#e8d5b7" strokeWidth="1.25" opacity="0.55" />
+                      <text x={day.x} y={day.y - 15} textAnchor="middle" fontSize="8" fill="#e8d5b7" opacity="0.7">
                         Fase {day.phase_target}
                       </text>
                     </>
                   )}
-
-                  {/* Rest day marker (teahouse) */}
                   {day.is_rest && (
-                    <g>
-                      <path
-                        d={`M ${day.x - 6} ${day.y + 8} L ${day.x} ${day.y + 12} L ${day.x + 6} ${day.y + 8}`}
-                        fill="none"
-                        stroke="rgba(100, 180, 200, 0.4)"
-                        strokeWidth="1"
-                      />
-                      <text x={day.x} y={day.y + 18} textAnchor="middle" fontSize="7" fill="rgba(100, 180, 200, 0.5)">
-                        ☕
-                      </text>
-                    </g>
+                    <text x={day.x} y={day.y + 15} textAnchor="middle" fontSize="9">
+                      ☕
+                    </text>
                   )}
                 </g>
               )
             })}
 
-            {/* Character (current position) */}
-            {currentDayIndex >= 0 && (
-              <g>
-                <circle cx={currentPoint.x} cy={currentPoint.y - 12} r="8" fill="#d9b36a" opacity="0.8" />
-                <text x={currentPoint.x} y={currentPoint.y - 6} textAnchor="middle" fontSize="10">
-                  🏔️
-                </text>
-              </g>
-            )}
+          {/* de klimmer op de huidige positie */}
+          {pathEl && cur && (
+            <text x={cur.x} y={cur.y - 11} textAnchor="middle" fontSize="15">
+              🧗
+            </text>
+          )}
 
-            {/* Temple at top (goal) */}
-            <g>
-              <text x="140" y="25" textAnchor="middle" fontSize="20">
-                ⛩️
-              </text>
-              <text x="140" y="42" textAnchor="middle" fontSize="9" fill="#e8d5b7" opacity="0.7">
-                Dengfeng
-              </text>
-            </g>
-          </g>
+          {/* de tempel bovenaan */}
+          <text x={CX} y="22" textAnchor="middle" fontSize="22">
+            ⛩️
+          </text>
+          <text x={CX} y="40" textAnchor="middle" fontSize="9" fill="#e8d5b7" opacity="0.75" letterSpacing="1">
+            DENGFENG
+          </text>
         </svg>
 
         <style jsx>{`
-          @keyframes pulse {
+          .pad-glow {
+            animation: padPulse 2.4s ease-in-out infinite;
+          }
+          @keyframes padPulse {
             0%,
             100% {
-              r: 10px;
-              opacity: 0.3;
+              opacity: 0.28;
             }
             50% {
-              r: 14px;
-              opacity: 0.1;
+              opacity: 0.08;
+            }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .pad-glow {
+              animation: none;
             }
           }
         `}</style>
       </div>
 
-      {/* Legend */}
+      {/* legenda */}
       <div className="card !p-3">
-        <div className="grid grid-cols-2 gap-3 text-[11px]">
+        <div className="grid grid-cols-2 gap-y-2.5 text-[11px]">
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-500/70" />
-            <span className="text-muted">Afgerond</span>
+            <span className="h-2.5 w-2.5 rounded-full bg-neon" />
+            <span className="text-muted">Volbracht</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-500/30" />
-            <span className="text-muted">Toekomst</span>
+            <span className="h-2.5 w-2.5 rounded-full border border-neon/40 bg-neon/25" />
+            <span className="text-muted">Nog te gaan</span>
           </div>
           <div className="flex items-center gap-2">
-            <span>⛩️</span>
-            <span className="text-muted">Doel (Dengfeng)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span>☕</span>
+            <span className="text-[13px]">☕</span>
             <span className="text-muted">Rustdag</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px]">⛩️</span>
+            <span className="text-muted">Dengfeng — het doel</span>
           </div>
         </div>
       </div>
 
-      {/* Day Detail Modal */}
-      {selectedDay && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
-          onClick={() => setSelectedDay(null)}
-        >
+      {/* dagdetail */}
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setSelected(null)}>
           <div
             className="max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl p-5 pb-[max(env(safe-area-inset-bottom),24px)]"
             style={{
@@ -326,45 +250,47 @@ export default function Bergpad() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <p className="lbl">Dag {selectedDay.day_no} · Week {selectedDay.week_no}</p>
-                <h3 className="font-display text-lg font-bold leading-tight text-ink">{selectedDay.title}</h3>
-                <p className="mt-0.5 text-xs text-muted">
-                  {fmt(selectedDay.date)}
-                  {selectedDay.is_complete && ' ✓ Afgerond'}
+                <p className="lbl">
+                  Week {selected.week_no} · dag {selected.day_no} · fase {selected.phase_target}
+                </p>
+                <h3 className="font-display text-lg font-bold leading-tight text-ink">{selected.title}</h3>
+                <p className="mt-0.5 text-xs capitalize text-muted">
+                  {fmt(selected.date)}
+                  {selected.is_complete ? ' · ✓ volbracht' : selected.date === today ? ' · vandaag' : ''}
                 </p>
               </div>
-              <button
-                onClick={() => setSelectedDay(null)}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-line text-muted"
-              >
+              <button onClick={() => setSelected(null)} className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-line text-muted">
                 <X size={15} />
               </button>
             </div>
 
-            {/* Content from plan_days */}
-            <div className="space-y-3">
-              {selectedDay.is_rest ? (
-                <div className="rounded-lg bg-panel2/70 p-3 text-center">
-                  <p className="text-sm text-ink">Rustdag ☕</p>
-                  <p className="mt-1 text-xs text-muted">Herstellen en voorbereiding op volgende week.</p>
-                </div>
-              ) : (
-                <>
-                  {selectedDay.is_phase_transition && (
-                    <div className="rounded-lg border border-amber/30 bg-amber/10 p-3">
-                      <p className="text-xs font-semibold text-amber">Fase {selectedDay.phase_target} begint</p>
-                      <p className="mt-1 text-xs text-amber/90">Poortwachtersproef — nieuwe uitdagingen ontsluiten.</p>
-                    </div>
-                  )}
-                  <div className="text-xs text-muted">
-                    <p>Oefeningsblokkken voor deze dag kunnen in het Schema worden bekeken.</p>
+            {selected.is_phase_transition && (
+              <div className="mb-3 rounded-lg border border-amber/30 bg-amber/10 p-3">
+                <p className="text-xs font-semibold text-amber">Poortwachtersproef — fase {selected.phase_target}</p>
+                <p className="mt-1 text-xs leading-relaxed text-amber/90">
+                  Een nieuwe fase ontsluit. Impact (springen, hardlopen, trappen) pas als je de fasecriteria haalt.
+                </p>
+              </div>
+            )}
+
+            {selected.is_rest ? (
+              <div className="rounded-lg bg-panel2/70 p-3 text-center">
+                <p className="text-sm text-ink">Theehuis · rustdag ☕</p>
+                <p className="mt-1 text-xs text-muted">Herstel is training. Adem, mediteer, laad op.</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {selected.blockLabels.map((label, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded-lg bg-panel2/60 px-3 py-2 text-sm text-ink">
+                    <span className="h-1.5 w-1.5 rounded-full bg-neon/70" />
+                    {label}
                   </div>
-                </>
-              )}
-            </div>
+                ))}
+                <p className="pt-1 text-[11px] text-muted">Open Vandaag of Schema voor de oefeningen, sets en reps.</p>
+              </div>
+            )}
           </div>
         </div>
       )}

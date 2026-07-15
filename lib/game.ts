@@ -136,7 +136,7 @@ export function readiness(today: any, hist: any[]) {
 
 export function badges(s: any) {
   const totMed = s.checkins.reduce((a: number, c: any) => a + (c.meditation_min || 0), 0)
-  const streak = streakFrom(s.checkins.map((c: any) => c.date))
+  const streak = effectiveStreak(s.checkins.map((c: any) => c.date), s.profile?.shield_dates || [])
   const metP = (n: number) => {
     const ph = PHASES.find((p) => p.n === n)
     if (!ph) return false
@@ -161,7 +161,7 @@ export function badges(s: any) {
 export function coachContext(s: any) {
   const p = s.profile || {}
   const lv = levelFor(p.xp || 0)
-  const streak = streakFrom(s.checkins.map((c: any) => c.date))
+  const streak = effectiveStreak(s.checkins.map((c: any) => c.date), p.shield_dates || [])
   const dep = daysUntil(p.departure_date)
   const L: string[] = []
   L.push(

@@ -142,10 +142,16 @@ export function SessionPlayer({ day, onClose }: { day: any; onClose: () => void 
   }
 
   const finish = async () => {
-    setFinishing(true)
     const total = items.length
     const complete = items.every((x) => doneKeys.includes(x.key))
-    let keys = doneKeys
+    const progressed = statsRef.current.sets > 0 || doneKeys.length > startDone.length
+    // Puur even kijken en weer sluiten? Dan niets loggen — geen lege sessie in de historie.
+    if (!progressed) {
+      onClose()
+      return
+    }
+    setFinishing(true)
+    const keys = doneKeys
     if (complete && !items.every((x) => startDone.includes(x.key))) app.awardXp('sessie', XP.PLAN_DAY_BONUS, { date: day.date })
     await app.savePlanDay(day.id, keys, complete)
     const duration = Math.floor((Date.now() - startRef.current) / 1000)
