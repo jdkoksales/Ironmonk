@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { sb } from './supabase'
-import { levelFor } from './game'
+import { levelFor, incenseState, computeShields } from './game'
 import { planRows } from './plan'
 
 const Ctx = createContext<any>(null)
@@ -27,6 +27,7 @@ export function AppProvider({ children }: any) {
     targets: [],
     briefings: [],
     setLogs: [],
+    sessions: [],
   })
 
   const load = async () => {
@@ -45,17 +46,37 @@ export function AppProvider({ children }: any) {
       supabase.from('criteria_state').select('*').eq('user_id', user.id),
       supabase.from('plan_days').select('*').eq('user_id', user.id).order('date', { ascending: true }),
     ])
-    const [g, gl, tg, br, sl] = await Promise.all([
+    const [g, gl, tg, br, sl, ws] = await Promise.all([
       supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
       supabase.from('goal_logs').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(400),
       supabase.from('targets').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
       supabase.from('daily_briefings').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(5),
       supabase.from('set_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(800),
+      supabase.from('workout_sessions').select('date, duration_sec, stats').eq('user_id', user.id).order('date', { ascending: false }).limit(200),
     ])
     let profile = p.data
     if (!profile) {
       const ins = await supabase.from('profiles').insert({ id: user.id }).select().single()
       profile = ins.data
+    }
+
+    // Wierook / streak-shield: overbrug stil een recent gemiste dag zolang er wierook is.
+    const checkins = c.data || []
+    const shieldDates = profile?.shield_dates || []
+    const { available } = incenseState(checkins.length, shieldDates)
+    const { add } = computeShields(
+      checkins.map((x: any) => x.date),
+      shieldDates,
+      available
+    )
+    if (add.length) {
+      const newShields = [...shieldDates, ...add]
+      const { error: shErr } = await supabase.from('profiles').update({ shield_dates: newShields }).eq('id', user.id)
+      if (!shErr) {
+        profile = { ...profile, shield_dates: newShields }
+        if (typeof window !== 'undefined')
+          window.dispatchEvent(new CustomEvent('ironshield', { detail: { saved: add } }))
+      }
     }
     // Self-seed (geen AI): alléén voor het Shaolin-traject van Tiě Shān.
     // Nieuwe gebruikers krijgen hun plan uit de intake-plangenerator.
@@ -82,6 +103,7 @@ export function AppProvider({ children }: any) {
       targets: tg.data || [],
       briefings: br.data || [],
       setLogs: sl.data || [],
+      sessions: ws.data || [],
     })
   }
 

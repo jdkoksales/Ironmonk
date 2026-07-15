@@ -2,9 +2,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { LogOut, ChevronRight } from 'lucide-react'
+import { LogOut, ChevronRight, CircleDot } from 'lucide-react'
 import { useApp } from '@/lib/store'
-import { LEVELS, levelFor, badges } from '@/lib/game'
+import { LEVELS, levelFor, badges, incenseState } from '@/lib/game'
+import { malaState } from '@/lib/mala'
 import { coachById } from '@/lib/coaches'
 import { CoachPortrait } from '@/components/coach-portrait'
 
@@ -18,6 +19,8 @@ export default function Profiel() {
 
   const lv = levelFor(app.profile.xp || 0)
   const bs = badges(app)
+  const mala = malaState(app)
+  const incense = incenseState(app.checkins.length, app.profile.shield_dates || [])
 
   const save = async () => {
     await app.supabase
@@ -54,6 +57,37 @@ export default function Profiel() {
           </div>
         </div>
       </section>
+
+      {/* Mala + wierook */}
+      <div className="grid grid-cols-2 gap-3">
+        <Link href="/mala" className="card flex flex-col justify-between !p-3.5">
+          <div className="flex items-center gap-2">
+            <CircleDot size={15} className="text-neon" />
+            <span className="lbl">Mala</span>
+          </div>
+          <div className="mt-2">
+            <div className="num font-display text-2xl font-bold text-ink">
+              {mala.lit}
+              <span className="text-sm text-muted"> / 108</span>
+            </div>
+            <div className="text-[11px] text-muted">kralen verdiend · {mala.pct}%</div>
+          </div>
+        </Link>
+        <div className="card flex flex-col justify-between !p-3.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[15px] leading-none">🪔</span>
+            <span className="lbl">Wierook</span>
+          </div>
+          <div className="mt-2">
+            <div className="num font-display text-2xl font-bold text-copper">{incense.available}</div>
+            <div className="text-[11px] leading-snug text-muted">
+              {incense.available > 0
+                ? 'beschermt je reeks bij een gemiste dag'
+                : `nog ${7 - (app.checkins.length % 7)} check-ins tot je volgende`}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <section className="card">
         <p className="lbl mb-2">Jouw coach</p>

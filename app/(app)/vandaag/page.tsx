@@ -8,8 +8,9 @@ import {
 import { findExercise } from '@/lib/exercises'
 import { ExerciseSheet } from '@/components/exercise-sheet'
 import { SessionPlayer } from '@/components/session-player'
+import { DailyQuests } from '@/components/daily-quests'
 import { useApp } from '@/lib/store'
-import { readiness, todayISO, daysUntil, streakFrom, XP, goalStreak } from '@/lib/game'
+import { readiness, todayISO, daysUntil, effectiveStreak, XP, goalStreak } from '@/lib/game'
 import { kompasSummary, COURSE_META } from '@/lib/kompas'
 import { PHASES, proverbOfDay } from '@/lib/protocol'
 import { Ring, Dots } from '@/components/viz'
@@ -239,7 +240,7 @@ export default function Vandaag() {
         app.criteria.some((x: any) => x.phase === phase.n && x.criterion_key === cr.key && x.met)
       ).length
     : 0
-  const streak = streakFrom(app.checkins.map((c: any) => c.date))
+  const streak = effectiveStreak(app.checkins.map((c: any) => c.date), app.profile.shield_dates || [])
   const color = !rd ? '#9E8E71' : rd.score >= 75 ? '#D9B36A' : rd.score >= 50 ? '#E0873A' : '#E25A48'
   const dateLabel = new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })
 
@@ -310,6 +311,8 @@ export default function Vandaag() {
           )}
         </Link>
       </section>
+
+      <DailyQuests />
 
       <PlanToday />
 

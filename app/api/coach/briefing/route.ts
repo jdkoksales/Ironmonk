@@ -79,7 +79,7 @@ export async function POST(req: Request) {
   const cs = checkins || []
   const last = cs.find((c: any) => c.date === date) || cs[0] || null
   const rd = last ? readiness(last, cs) : null
-  const streak = streakFrom(cs.map((c: any) => c.date))
+  const streak = streakFrom([...cs.map((c: any) => c.date), ...(profile?.shield_dates || [])])
   const dep = daysUntil(profile?.departure_date)
   const day = plan?.[0]
 

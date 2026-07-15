@@ -61,6 +61,46 @@ export function streakFrom(dates: string[]) {
 
 export const streakMult = (s: number) => Math.min(2, 1 + 0.05 * s)
 
+// ——— Wierook / streak-shields (loss-aversion, in de geest van Duolingo's streak-freeze) ———
+// Je verdient één wierookstok per zoveel check-ins. Een gemiste dag wordt stil
+// overbrugd zolang je wierook hebt — je merkt het pas als de meester je bedankt.
+export const INCENSE_PER_CHECKINS = 7
+const SHIELD_MAX_GAP = 3 // één afwezigheid van hooguit 3 dagen kan overbrugd worden
+
+export function incenseState(checkinCount: number, shieldDates: string[] = []) {
+  const earned = Math.floor(checkinCount / INCENSE_PER_CHECKINS)
+  const used = shieldDates.length
+  return { earned, used, available: Math.max(0, earned - used) }
+}
+
+// Streak inclusief beschermde (wierook-)dagen.
+export function effectiveStreak(checkinDates: string[], shieldDates: string[] = []) {
+  return streakFrom([...checkinDates, ...shieldDates])
+}
+
+// Bepaal welke recent gemiste dagen door wierook overbrugd worden.
+// Alleen het meest recente gat vlak vóór vandaag, en alléén als er een streak
+// áchter het gat zit om te beschermen (anders verspil je geen wierook).
+export function computeShields(
+  checkinDates: string[],
+  shieldDates: string[],
+  available: number,
+  today: string = todayISO()
+): { add: string[] } {
+  if (available <= 0) return { add: [] }
+  const covered = new Set<string>([...checkinDates, ...shieldDates])
+  if (covered.has(today) && covered.has(addDays(today, -1))) return { add: [] }
+  const gap: string[] = []
+  let d = addDays(today, -1)
+  while (!covered.has(d) && gap.length < available && gap.length < SHIELD_MAX_GAP) {
+    gap.push(d)
+    d = addDays(d, -1)
+  }
+  // d is nu de eerstvolgende gedekte dag vóór het gat — alleen dán is er iets te redden.
+  if (gap.length > 0 && covered.has(d)) return { add: gap }
+  return { add: [] }
+}
+
 export function readiness(today: any, hist: any[]) {
   if (!today) return null
   const clamp = (v: number) => Math.max(0, Math.min(100, v))

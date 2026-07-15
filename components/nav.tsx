@@ -4,10 +4,10 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   Activity, ClipboardList, TrendingUp, MessageCircle, User, Flame, CalendarRange,
-  Landmark, Swords, Compass, MoreHorizontal, X, Mountain,
+  Landmark, Swords, Compass, MoreHorizontal, X, Mountain, CircleDot,
 } from 'lucide-react'
 import { useApp } from '@/lib/store'
-import { levelFor, streakFrom } from '@/lib/game'
+import { levelFor, effectiveStreak, incenseState } from '@/lib/game'
 import { XPBar } from './viz'
 
 export function Header() {
@@ -35,7 +35,8 @@ export function Header() {
 
   if (!app?.profile) return null
   const lv = levelFor(app.profile.xp || 0)
-  const streak = streakFrom(app.checkins.map((c: any) => c.date))
+  const streak = effectiveStreak(app.checkins.map((c: any) => c.date), app.profile.shield_dates || [])
+  const incense = incenseState(app.checkins.length, app.profile.shield_dates || []).available
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur-xl">
@@ -53,6 +54,15 @@ export function Header() {
             </div>
           </Link>
           <div className="flex items-center gap-2">
+            {incense > 0 && (
+              <div
+                className="flex items-center gap-1 rounded-full border border-copper/40 bg-copper/10 px-2 py-1 text-copper"
+                title={`${incense} wierookstok(ken) — beschermen je reeks bij een gemiste dag`}
+              >
+                <span className="text-[13px] leading-none">🪔</span>
+                <span className="num text-sm font-semibold">{incense}</span>
+              </div>
+            )}
             <div
               className={`flex items-center gap-1 rounded-full border px-2.5 py-1 ${
                 streak > 0 ? 'border-amber/40 bg-amber/10 text-amber' : 'border-line bg-panel2 text-muted'
@@ -113,6 +123,7 @@ const TABS = [
 ]
 
 const MORE = [
+  { href: '/mala', label: 'Mala', desc: '108 kralen — jouw mijlpalen', icon: CircleDot },
   { href: '/enkel', label: 'Enkel', desc: '4-fasen protocol & criteria', icon: Activity },
   { href: '/testen', label: 'Testen', desc: 'Testbatterij & media-kluis', icon: ClipboardList },
   { href: '/kompas', label: 'Kompas', desc: 'Dengfeng-standaard & koers', icon: Compass },

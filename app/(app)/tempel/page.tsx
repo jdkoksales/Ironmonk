@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { MessageCircle, ChevronRight, Scroll, Swords, Target } from 'lucide-react'
 import { useApp } from '@/lib/store'
-import { todayISO, daysUntil, streakFrom, goalStreak } from '@/lib/game'
+import { todayISO, daysUntil, effectiveStreak, goalStreak } from '@/lib/game'
 import { kompasSummary } from '@/lib/kompas'
 import { proverbOfDay } from '@/lib/protocol'
 import { coachById } from '@/lib/coaches'
@@ -25,6 +25,14 @@ export default function Tempel() {
   const app = useApp()
   const [briefing, setBriefing] = useState<string | null>(null)
   const [briefBusy, setBriefBusy] = useState(false)
+  const [shieldSaved, setShieldSaved] = useState<number>(0)
+
+  // Wierook beschermde stil je reeks — bedank de gebruiker bij terugkomst.
+  useEffect(() => {
+    const onShield = (e: any) => setShieldSaved(e.detail?.saved?.length || 0)
+    window.addEventListener('ironshield', onShield)
+    return () => window.removeEventListener('ironshield', onShield)
+  }, [])
 
   // Ochtendbriefing van de meester — 1 AI-call per dag, gecachet in daily_briefings.
   useEffect(() => {
@@ -59,7 +67,7 @@ export default function Tempel() {
   const dag = (app.plan || []).find((d: any) => d.date === today)
   const volgend = (app.plan || []).find((d: any) => d.date > today)
   const dep = daysUntil(app.profile.departure_date)
-  const streak = streakFrom(app.checkins.map((c: any) => c.date))
+  const streak = effectiveStreak(app.checkins.map((c: any) => c.date), app.profile.shield_dates || [])
   const ks = (app.targets || []).length ? kompasSummary(app.targets, app.tests || [], app.profile) : null
   const doelen = (app.goals || []).filter((g: any) => g.active).slice(0, 3)
   const motivatie = MOTIVATIE[Math.floor(Date.now() / 86400000) % MOTIVATIE.length]
@@ -72,6 +80,15 @@ export default function Tempel() {
       {dep != null && (
         <div className="animate-fadeUp mb-1 mt-2 text-[10px] uppercase tracking-[0.3em] text-muted">
           Dengfeng over <span className="num text-neon">{dep}</span> dagen
+        </div>
+      )}
+
+      {/* Wierook redde je reeks */}
+      {shieldSaved > 0 && (
+        <div className="animate-fadeUp mb-2 w-full rounded-xl border border-copper/40 bg-copper/10 px-3.5 py-2.5 text-center">
+          <p className="text-[13px] text-copper">
+            🪔 Je wierook beschermde je reeks — {shieldSaved === 1 ? 'een gemiste dag is' : `${shieldSaved} gemiste dagen zijn`} overbrugd.
+          </p>
         </div>
       )}
 
